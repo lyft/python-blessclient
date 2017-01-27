@@ -1,0 +1,12 @@
+sudo: false
+language: python
+
+matrix:
+  include:
+    - python: "2.7"
+
+install:
+  - make develop
+
+script:
+  - make test

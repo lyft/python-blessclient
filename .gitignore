@@ -1,0 +1,8 @@
+*.pyc
+.coverage
+.cache
+coverage.xml
+venv/
+blessclient.run
+blessclient.egg-info/
+build/

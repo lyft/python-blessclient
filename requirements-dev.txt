@@ -1,0 +1,6 @@
+-r requirements.txt
+
+pytest>=3.0.4
+pytest-cov>=2.4.0
+pytest-mock>=1.5.0
+flake8>=2.4.1
