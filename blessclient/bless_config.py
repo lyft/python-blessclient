@@ -79,8 +79,22 @@ class BlessConfig(object):
     def get_client_config(self):
         return self.blessconfig['CLIENT_CONFIG']
 
+    def set_client_config(self, key, value):
+        if key in self.blessconfig['CLIENT_CONFIG']:
+            self.blessconfig['CLIENT_CONFIG'][key] = value
+            return True
+        else:
+            return False
+
     def get_lambda_config(self):
         return self.blessconfig['BLESS_CONFIG']
+
+    def set_lambda_config(self, key, value):
+        if key in self.blessconfig['BLESS_CONFIG']:
+            self.blessconfig['BLESS_CONFIG'][key] = value
+            return True
+        else:
+            return False
 
     def get_aws_config(self):
         return self.blessconfig['AWS_CONFIG']

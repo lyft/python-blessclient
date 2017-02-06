@@ -44,6 +44,7 @@ def bless_config_test():
     config.set_config(config.parse_config_file(configIO))
     return config
 
+
 def test_set():
     config = BlessConfig()
     config.set_config({'foo': 'bar'})
@@ -114,6 +115,7 @@ def test_get_region_alias_from_aws_region(bless_config_test):
     with pytest.raises(ValueError):
         bless_config_test.get_region_alias_from_aws_region('foo-1')
 
+
 def test_get_configs(bless_config_test):
     client_config = bless_config_test.get_client_config()
     assert 'domain_regex' in client_config
@@ -121,3 +123,16 @@ def test_get_configs(bless_config_test):
     assert 'functionname' in lambda_config
     aws_config = bless_config_test.get_aws_config()
     assert 'bastion_ips' in aws_config
+
+
+def test_set_lambda_config(bless_config_test):
+    bless_config_test.set_lambda_config('ipcachelifetime', 1)
+    lambda_config = bless_config_test.get_lambda_config()
+    assert lambda_config['ipcachelifetime'] == 1
+    assert bless_config_test.set_lambda_config('DOESNOTEXIST', 9000) == False
+
+def test_set_client_config(bless_config_test):
+    bless_config_test.set_client_config('update_script', 'foo.sh')
+    client_config = bless_config_test.get_client_config()
+    assert client_config['update_script'] == 'foo.sh'
+    assert bless_config_test.set_client_config('DOESNOTEXIST', 9000) == False
