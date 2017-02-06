@@ -230,6 +230,16 @@ def test_update_client_invalid_update_script(mocker, null_bless_cache, bless_con
     client.update_client(null_bless_cache, bless_config)
     logmock.assert_called_with('Client does not need to upgrade yet.')
 
+
+def test_update_config_from_env(mocker, bless_config):
+    # First time without override set
+    client.update_config_from_env(bless_config)
+    assert bless_config.get_lambda_config()['ipcachelifetime'] == 300
+    os.environ['BLESSIPCACHELIFETIME'] = '1'
+    client.update_config_from_env(bless_config)
+    assert bless_config.get_lambda_config()['ipcachelifetime'] == 1
+
+
 @pytest.fixture
 def autoupdate_cache(mocker):
     bless_cache = BlessCache(None, None, BlessCache.CACHEMODE_ENABLED)

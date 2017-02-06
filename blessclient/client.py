@@ -398,6 +398,18 @@ def get_default_config_filename():
     return os.path.normpath(os.path.join(file_dir, os.pardir, 'blessclient.cfg'))
 
 
+def update_config_from_env(bless_config):
+    """ Override config values from environment variables
+    Args:
+        bless_config (BlessConfig): Loaded BlessConfig
+    """
+    lifetime = os.getenv('BLESSIPCACHELIFETIME')
+    if lifetime is not None:
+        lifetime = int(lifetime)
+        logging.debug('Overriding ipcachelifetime from env: {}'.format(lifetime))
+        bless_config.set_lambda_config('ipcachelifetime', lifetime)
+
+
 def bless(region, nocache, showgui, hostname, bless_config):
     # Setup loggging
     setup_logging()
