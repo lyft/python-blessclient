@@ -1,9 +1,10 @@
 # Blessclient
 A client for interacting with [BLESS](https://github.com/lyft/bless) services from users' laptops.
 
-## Introduction
-
 ## Requirements
+Blessclient is a python client that should run without modification on OSX 10.10 - 10.12, and Ubuntu 16.04. Other linux versions should work fine, but we test the client on 16.04.
+
+Users should be running a recent version of python 2.7 (OSX uses 2.7.10), and need pip and virtualenv installed if they will be building the client locally. We distribute blessclient with a Makefile, but you can easily duplicate those steps in another scripting language if your users don't have make installed.
 
 ## Installation
 To get to the point where you can login to a server using your bless'ed SSH certificate, you will need:
@@ -12,7 +13,7 @@ To get to the point where you can login to a server using your bless'ed SSH cert
   * The blessclient (this project) which talks to the Lambda to get a new SSH certificate
   * Some configuration work to have the blessclient invoked when the user runs SSH
 
-### Run a BLESS lambda in AWS
+### Run a BLESS Lambda in AWS
 Run Lyft's fork of Netflix's BLESS in your repo. There are two major additions that our fork includes which have not been upstreamed yet:
   * The client authenticates to the Lambda using a [kmsauth](https://github.com/lyft/python-kmsauth) token. This allows the Lambda to authenticate the user, even if the AWS user is in a different AWS account.
   * We allow a list of IP address or cidr blocks for the user's IP and bastion IP addresses.
@@ -25,7 +26,9 @@ Blessclient assumes that the user will assume a role, and the role has permissio
 Kmsauth is a system where we use an AWS KMS key and AWS IAM policy to get proof that a particular user proved their identity to AWS at a specific time. For more context around kmsauth, see [the announcement for Confidant](https://eng.lyft.com/announcing-confidant-an-open-source-secret-management-service-from-lyft-1e256fe628a3#.e813nrx6k), Lyft's secret management system.
 
 To use kmsauth with blessclient,
+
  1) Add a kms key in each region where you want to be able to use kmsauth.
+
  2) Add a policy to the kmsauth key that looks something like,
   ```
          {
