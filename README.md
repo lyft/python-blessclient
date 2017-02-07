@@ -88,33 +88,33 @@ You will probably want to start with the sample config (blessclient.cfg.sample) 
 ### Integrate your client with SSH
 Blessclient will need to be called shortly before your users can ssh into BLESS-configured servers. There are a couple of ways you can accomplish this. To ensure blessclient is always invoked for the most users, Lyft uses both methods, preventing a redundant second run with BLESS_COMPLETE.
 
-1) Wrap your `ssh` command with an alias that calls blessclient first. At Lyft, we alias ssh to a bash script that looks like,
+1. Wrap your `ssh` command with an alias that calls blessclient first. At Lyft, we alias ssh to a bash script that looks like,
 
-```
-#!/bin/bash
+    ```
+    #!/bin/bash
 
-CLIENTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    CLIENTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# Only run blessclient if connect to a lyft server
-if echo "$@" | grep -q '\.lyft\.'; then
-    echo 'Running bless...'
-    "${CLIENTDIR}/blessclient.run"
-fi
+    # Only run blessclient if connect to a lyft server
+    if echo "$@" | grep -q '\.lyft\.'; then
+        echo 'Running bless...'
+        "${CLIENTDIR}/blessclient.run"
+    fi
 
-unalias ssh &> /dev/null
-BLESS_COMPLETE=1 ssh "$@"
-```
+    unalias ssh &> /dev/null
+    BLESS_COMPLETE=1 ssh "$@"
+    ```
 
-This is nice because the user can interact with blessclient and put their MFA code (if needed) into the shell prompt.
+    This is nice because the user can interact with blessclient and put their MFA code (if needed) into the shell prompt.
 
-2) Add a `Match exec` line to your ssh_config file. You can add something like,
+2. Add a `Match exec` line to your ssh_config file. You can add something like,
 
-```
-Match exec "env | grep -q BLESS_COMPLETE || /Users/stype/blessclient/blessclient.run --gui --host '%h'"
-	IdentityFile ~/.ssh/blessid
-```
+    ```
+    Match exec "env | grep -q BLESS_COMPLETE || /Users/stype/blessclient/blessclient.run --gui --host '%h'"
+    	IdentityFile ~/.ssh/blessid
+    ```
 
-The advantage of this method is that all uses of ssh (git, scp, rsync) will invoke blessclient when run. The down side is that when openssh client runs the command specified, it connects stderr but not stdin. As a result, blessclient can't prompt the user for their MFA code on the console, so we have to pass --gui to present a gui dialog (using tkinter). Also, 'Match exec' was added in openssh 6.5, so earlier clients will error on the syntax.
+    The advantage of this method is that all uses of ssh (git, scp, rsync) will invoke blessclient when run. The down side is that when openssh client runs the command specified, it connects stderr but not stdin. As a result, blessclient can't prompt the user for their MFA code on the console, so we have to pass --gui to present a gui dialog (using tkinter). Also, 'Match exec' was added in openssh 6.5, so earlier clients will error on the syntax.
 
 ## What blessclient does
 When your users run blessclient, the rough list of things done is:
