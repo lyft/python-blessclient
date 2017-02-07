@@ -1,5 +1,5 @@
 # Blessclient
-A client for interacting with [BLESS](https://github.com/lyft/bless) services from users' laptops.
+A client for interacting with [BLESS](https://github.com/lyft/bless) services from users' laptops. Blessclient optimizes to ensure that users can always use ssh as they normally would with a fixed key, with minimal delay.
 
 ## Requirements
 Blessclient is a python client that should run without modification on OSX 10.10 - 10.12, and Ubuntu 16.04. Other linux versions should work fine, but we test the client on 16.04.
@@ -61,8 +61,6 @@ At minimum, you can run `make client` to setup a virtualenv, install python-bles
 
 By default, blessclient uses the private key ~/.ssh/blessid, and looks for a corresponding ~/.ssh/blessid.pub to get the public key. The key must be an RSA key to use the Lyft/Netflix BLESS Lambda, other key types are not supported. The ssh certificate will be written to <identity_file>-cert.pub (by default, ~/.ssh/blessid-cert.pub), where OSX's ssh-agent expects a corresponding ssh certificate. It seems to work best if you also symlink the '-cert.pub' to '-cert', because some ssh clients seem to only check for the '-cert' version.
 
-You can use an alternate filename by setting the BLESS_IDENTITYFILE environment variable. Blessclient will also attempt to detect and use as the identity file a '-i' flag passed into the ssh command.
-
 You can generate these with something like,
 
 ```
@@ -72,15 +70,19 @@ touch ~/.ssh/blessid-cert.pub
 ln -s ~/.ssh/blessid-cert.pub ~/.ssh/blessid-cert
 ```
 
+You can use an alternate filename by setting the BLESS_IDENTITYFILE environment variable. Blessclient will also attempt to detect and use as the identity file a '-i' flag passed into the ssh command.
+
+Blessclient will also use your user's AWS credentials to take actions in AWS on their behalf. These are typically set in ~/.aws/credentials, or by some other method (see [Configuring Credentials](http://boto3.readthedocs.io/en/latest/guide/configuration.html)).
+
 ### Configure your client
-By default, blessclient is configured by adding a blessclient.cfg file in the repo where you downloaded blessclient. You can also specify a config file location by passing `--config` when invoking blessclient.
+By default, blessclient is configured by adding a blessclient.cfg file in the root of the directory where you downloaded blessclient. You can also specify a config file location by passing `--config` when invoking blessclient.
 
 If you fork this project, you can include a configuration file in the fork for your users to download when they clone the repo, or you can add this repo as a git submodule to a deployment repo, and have the installation process copy your configuration file to the correct location.
 
-You can copy the sample config (blessclient.cfg.sample) and fill in the information about your BLESS Lambda, kmsauth key, and blessclient options. At minimum, you will likely need to set, `kms_service_name`, `bastion_ips`, `domain_regex`, `user_role`, `account_id`, `functionname`, and `functionversion`.
+You will probably want to start with the sample config (blessclient.cfg.sample) and fill in the information about your BLESS Lambda, kmsauth key, and blessclient. At minimum, you will likely need to set, `kms_service_name`, `bastion_ips`, `domain_regex`, `user_role`, `account_id`, `functionname`, and `functionversion` for things to work.
 
 ### Integrate your client with SSH
-Blessclient will need to be called before your users can ssh into BLESS-configured servers. There are a couple of ways you can accomplish this. To ensure blessclient is always invoked for the most users, Lyft uses both methods, preventing a redundant second run with BLESS_COMPLETE.
+Blessclient will need to be called shortly before your users can ssh into BLESS-configured servers. There are a couple of ways you can accomplish this. To ensure blessclient is always invoked for the most users, Lyft uses both methods, preventing a redundant second run with BLESS_COMPLETE.
 
 1. Wrap your `ssh` command with an alias that calls blessclient first. At Lyft, we alias ssh to a bash script that looks like,
 
@@ -110,11 +112,21 @@ Match exec "env | grep -q BLESS_COMPLETE || /Users/stype/blessclient/blessclient
 
 The advantage of this method is that all uses of ssh (git, scp, rsync) will invoke blessclient when run. The down side is that when openssh client runs the command specified, it connects stderr but not stdin. As a result, blessclient can't prompt the user for their MFA code on the console, so we have to pass --gui to present a gui dialog (using tkinter). Also, 'Match exec' was added in openssh 6.5, so earlier clients will error on the syntax.
 
+## What blessclient does
+When your users run blessclient, the rough list of things done is:
+  * Prompt the user for their MFA code, and get a session token from AWS sts that proves the user's identity
+  * Generate and encrypt a kmsauth token
+  * Assume the user role that can invoke the BLESS Lambda
+  * Invoke the BLESS Lambda, passing in the user's kmsauth token and public key
+  * Get back the ssh certificate from the Lambda, and save it to the filesystem
+  * Load identity into the running ssh-agent, so agent forwarding will work
+
+Blessclient aggressively caches artifacts, and can issue a certificate with a single round-trip to call the Lambda if a current kmsauth token and role credentials are cached.
+
 ## Automatically updating the client
 If you are using a real endpoint management system to deploy software onto your users laptops, you can ignore this!
 
-If your users' laptops are relatively unmanaged, you will probably want to have them automatically update their copy of blessclient. After 7 days of use, blessclient will run an autoupdate script, which is configurable in blessclient.cfg ('update_script' in the CLIENT section). The update script does not block the client's execution (we don't want to make users wait for a client update if they are responding to an emergency). The script could be as simple as `git pull && make client`. At Lyft, the update process also verifies that the update target (in our deployment repo) is signed by a trusted GPG key.
-
+If your users' laptops are relatively unmanaged, you will probably want to have them automatically update their copy of blessclient. After 7 days of use, blessclient will run an update script automatically, which is configurable in blessclient.cfg ('update_script' in the CLIENT section). The update script does not block the client's execution (we don't want to make users wait for a client update if they are responding to an emergency). The script could be as simple as `git pull && make client`. At Lyft, the update process also verifies that the update target (in our deployment repo) is signed by a trusted GPG key.
 
 ## Contributing
 This project is governed by [Lyft's code of conduct](https://github.com/lyft/code-of-conduct). For your PR's to be accepted, you'll need to sign our [CLA](https://oss.lyft.com/cla).
