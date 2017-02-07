@@ -59,24 +59,61 @@ Your sshd_config should have a TrustedUserCAKeys option setup to trust your BLES
 ### Quickly build a client
 At minimum, you can run `make client` to setup a virtualenv, install python-blessclient, and symlink to the resulting script. This requires users to have virtualenv and pip installed (and have reasonably recent versions of both).
 
+By default, blessclient uses the private key ~/.ssh/blessid, and looks for a corresponding ~/.ssh/blessid.pub to get the public key. The key must be an RSA key to use the Lyft/Netflix BLESS Lambda, other key types are not supported. The ssh certificate will be written to <identity_file>-cert.pub (by default, ~/.ssh/blessid-cert.pub), where OSX's ssh-agent expects a corresponding ssh certificate. It seems to work best if you also symlink the '-cert.pub' to '-cert', because some ssh clients seem to only check for the '-cert' version.
+
+You can use an alternate filename by setting the BLESS_IDENTITYFILE environment variable. Blessclient will also attempt to detect and use as the identity file a '-i' flag passed into the ssh command.
+
+You can generate these with something like,
+
+```
+ssh-keygen -f ~/.ssh/blessid -b 4096 -t rsa -C 'Temporary key for BLESS certificate' -N ''
+ssh-keygen -y -f ~/.ssh/blessid > ~/.ssh/blessid.pub
+touch ~/.ssh/blessid-cert.pub
+ln -s ~/.ssh/blessid-cert.pub ~/.ssh/blessid-cert
+```
+
 ### Configure your client
 By default, blessclient is configured by adding a blessclient.cfg file in the repo where you downloaded blessclient. You can also specify a config file location by passing `--config` when invoking blessclient.
 
 If you fork this project, you can include a configuration file in the fork for your users to download when they clone the repo, or you can add this repo as a git submodule to a deployment repo, and have the installation process copy your configuration file to the correct location.
 
-You can copy the sample config (blessclient.cfg.sample) and fill in the information about your BLESS Lambda, kmsauth key, and blessclient options.
+You can copy the sample config (blessclient.cfg.sample) and fill in the information about your BLESS Lambda, kmsauth key, and blessclient options. At minimum, you will likely need to set, `kms_service_name`, `bastion_ips`, `domain_regex`, `user_role`, `account_id`, `functionname`, and `functionversion`.
 
 ### Integrate your client with SSH
-Blessclient will need to be called before your users can ssh into BLESS-configured servers. There are a couple of ways you can accomplish this.
+Blessclient will need to be called before your users can ssh into BLESS-configured servers. There are a couple of ways you can accomplish this. To ensure blessclient is always invoked for the most users, Lyft uses both methods, preventing a redundant second run with BLESS_COMPLETE.
 
-1. Wrap your `ssh` command with an alias that calls blessclient first.
+1. Wrap your `ssh` command with an alias that calls blessclient first. At Lyft, we alias ssh to a bash script that looks like,
 
-2. Add a `Match exec` line to your ssh_config file
+```
+#!/bin/bash
+
+CLIENTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Only run blessclient if connect to a lyft server
+if echo "$@" | grep -q '\.lyft\.'; then
+    echo 'Running bless...'
+    "${CLIENTDIR}/blessclient.run"
+fi
+
+unalias ssh &> /dev/null
+BLESS_COMPLETE=1 ssh "$@"
+```
+
+This is nice because the user can interact with blessclient and put their MFA code (if needed) into the shell prompt.
+
+2. Add a `Match exec` line to your ssh_config file. You can add something like,
+
+```
+Match exec "env | grep -q BLESS_COMPLETE || /Users/stype/blessclient/blessclient.run --gui --host '%h'"
+	IdentityFile ~/.ssh/blessid
+```
+
+The advantage of this method is that all uses of ssh (git, scp, rsync) will invoke blessclient when run. The down side is that when openssh client runs the command specified, it connects stderr but not stdin. As a result, blessclient can't prompt the user for their MFA code on the console, so we have to pass --gui to present a gui dialog (using tkinter). Also, 'Match exec' was added in openssh 6.5, so earlier clients will error on the syntax.
 
 ## Automatically updating the client
 If you are using a real endpoint management system to deploy software onto your users laptops, you can ignore this!
 
-If your users' laptops are relatively unmanaged, you will probably want to have them automatically update their copy of blessclient. After 7 days of use, blessclient will run an autoupdate script, which is configurable in blessclient.cfg ('update_script' in the CLIENT section). The update script does not block the client's execution (we don't want to make users wait for a client update if they are responding to an emergency). The script could be as simple as `git pull && make client`, although you may want to include logic to pull/build the client in a temporary location and update a symlink that the user calls. At Lyft, the update process also verifies that the update target (in our deployment repo) is signed by a trusted GPG key.
+If your users' laptops are relatively unmanaged, you will probably want to have them automatically update their copy of blessclient. After 7 days of use, blessclient will run an autoupdate script, which is configurable in blessclient.cfg ('update_script' in the CLIENT section). The update script does not block the client's execution (we don't want to make users wait for a client update if they are responding to an emergency). The script could be as simple as `git pull && make client`. At Lyft, the update process also verifies that the update target (in our deployment repo) is signed by a trusted GPG key.
 
 
 ## Contributing
