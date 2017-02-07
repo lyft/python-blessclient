@@ -4,23 +4,25 @@ A client for interacting with [BLESS](https://github.com/lyft/bless) services fr
 ## Requirements
 Blessclient is a python client that should run without modification on OSX 10.10 - 10.12, and Ubuntu 16.04. Other linux versions should work fine, but we test the client on 16.04.
 
-Users should be running a recent version of python 2.7 (OSX uses 2.7.10), and need pip and virtualenv installed if they will be building the client locally. We distribute blessclient with a Makefile, but you can easily duplicate those steps in another scripting language if your users don't have make installed.
+Users should be running a recent version of python 2.7 (OSX comes with 2.7.10), and need pip and virtualenv installed if they will be building the client locally. We distribute blessclient with a Makefile, but you can easily duplicate those steps in another scripting language if your users don't have make installed.
+
+It's required that your AWS user names match the ssh username used by your users. The ssh certificate issued by the BLESS Lambda specifies the username allowed the login with the certificate, and we use the user's AWS username for this. The BLESS Lambda and kmsauth could be modified to change this requirement, but we don't support that at this time.
 
 ## Installation
 To get to the point where you can login to a server using your bless'ed SSH certificate, you will need:
-  * A BLESS Lambda that signs your users' public keys, and is trusted by your SSH hosts. See [BLESS](https://github.com/lyft/bless/tree/lyft_base).
-  * Your SSH server configured to trust the Lambda
-  * The blessclient (this project) which talks to the Lambda to get a new SSH certificate
-  * Some configuration work to have the blessclient invoked when the user runs SSH
+  * A BLESS Lambda that signs your users' public keys, and is trusted by your SSH hosts. See [Lyft's BLESS](https://github.com/lyft/bless/tree/lyft_base).
+  * Your SSH server configured to trust the Lambda as Certificate Authority
+  * A client (this project!) which talks to the Lambda to get a new SSH certificate
+  * Some configuration work to have blessclient invoked when the user runs SSH
 
 ### Run a BLESS Lambda in AWS
-Run Lyft's fork of Netflix's BLESS in your repo. There are two major additions that our fork includes which have not been upstreamed yet:
-  * The client authenticates to the Lambda using a [kmsauth](https://github.com/lyft/python-kmsauth) token. This allows the Lambda to authenticate the user, even if the AWS user is in a different AWS account.
-  * We allow a list of IP address or cidr blocks for the user's IP and bastion IP addresses.
+Run Lyft's fork of Netflix's BLESS in your AWS account. There are two major additions that our fork includes which have not been upstreamed yet:
+  * The client authenticates to the Lambda using a [kmsauth](https://github.com/lyft/python-kmsauth) token. This allows the Lambda to authenticate the user and issue the certificate for their username, even if the AWS user is in a different AWS account.
+  * We allow a list of IP address or cidr blocks for the user's IP and bastion IP addresses, whereas Netflix's BLESS only allows a single IP for each.
 
 The lambda execution role will need permissions to decrypt the CA private key in your configuration, as well as permission to decrypt kmsauth tokens (see below).
 
-Blessclient assumes that the user will assume a role, and the role has permissions to execute the Lambda. You should create this role, give it permissions to execute the Lambda, and give your users permissions to assume the role. The kmsauth policy can be used to require MFA, however you may want to also require MFA to assume this role, in case the kmsauth control fails.
+Blessclient also assumes that the user will assume an IAM role, and that role has permissions to execute the Lambda. You should create this role, give it permissions to execute the Lambda, and give your users permissions to assume the role. The kmsauth policy can be used to require MFA, however you may want to also require MFA to assume this role, in case the kmsauth control fails.
 
 ### Setup a kmsauth key + policy in your AWS account
 Kmsauth is a system where we use an AWS KMS key and AWS IAM policy to get proof that a particular user proved their identity to AWS at a specific time. For more context around kmsauth, see [the announcement for Confidant](https://eng.lyft.com/announcing-confidant-an-open-source-secret-management-service-from-lyft-1e256fe628a3#.e813nrx6k), Lyft's secret management system.
@@ -29,7 +31,7 @@ To use kmsauth with blessclient,
 
  1) Add a kms key in each region where you want to be able to use kmsauth.
 
- 2) Add a policy to the kmsauth key that looks something like,
+ 2) Add a policy for your users to use the key that looks something like,
   ```
          {
             "Action": "kms:Encrypt",
@@ -53,10 +55,10 @@ To use kmsauth with blessclient,
   ```
 This allows your users to encrypt data with the kms auth key only if the "from" context matches their username. Your lambda's execution role will need a corresponding permission to decrypt data using this same kms key when the "to" context matches the the service name (in this example, "bless-production").
 
-### Trust your BLESS Lambda
+### Setup your SSH server to trust your BLESS Lambda
 Your sshd_config should have a TrustedUserCAKeys option setup to trust your BLESS Lambda. See the [Netflix BLESS](https://github.com/netflix/bless#enabling-bless-certificates-on-servers) documentation for how to do this.
 
-### Quickly build a client
+### Build a client
 At minimum, you can run `make client` to setup a virtualenv, install python-blessclient, and symlink to the resulting script. This requires users to have virtualenv and pip installed (and have reasonably recent versions of both).
 
 By default, blessclient uses the private key ~/.ssh/blessid, and looks for a corresponding ~/.ssh/blessid.pub to get the public key. The key must be an RSA key to use the Lyft/Netflix BLESS Lambda, other key types are not supported. The ssh certificate will be written to <identity_file>-cert.pub (by default, ~/.ssh/blessid-cert.pub), where OSX's ssh-agent expects a corresponding ssh certificate. It seems to work best if you also symlink the '-cert.pub' to '-cert', because some ssh clients seem to only check for the '-cert' version.
