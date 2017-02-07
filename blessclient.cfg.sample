@@ -1,0 +1,93 @@
+# Sample blessclient.cfg file
+
+[MAIN]
+# region_aliases: These are regions that can be passed on the commandline of blessclient,
+# using the --region option, to specify the AWS region. You must have at least one region
+# defined. If the client can't connect to aws services in the region, it will try the next
+# region.
+region_aliases: WEST, EAST
+
+# kms_service_name: Name that will be set in the "To" context for the kmsauth token. Your
+# Lambda must have permissions to decrypt with each of the kms keys when the "To" context
+# is set to this string. Setting policy appropriately can prevent a staging/dev kmsauth
+# token from being used to authenticate to the production Lambda.
+kms_service_name: bless-production
+
+# bastion_ips: These IPs and/or netmasks will be added as valid source IPs to every
+# certificate issued. If your users proxy / agent-forward through a bastion host, then
+# the internal IP of each should be listed here.
+bastion_ips: 10.100.1.230,192.168.200.0/24
+
+[CLIENT]
+# domain_regex: A (python) regex that is tested by the blessclient to determine if we need
+# to run bless and get a certificate, or if we can skip it. This prevents blessclient from
+# making your users wait to get a certificate when they connect to github, etc.
+domain_regex: (.*\.example\.com|.*\.example\.net|\A10\.100(?:\.[0-9]{1,3}){2}\Z)$
+
+# cache_dir / cache_file: file and directory (in the user's home directory) where we cache
+# information about the user. Blessclient will cache AWS tokens here, so the directory should
+# have permissions to only let the user read the cache.
+cache_dir: .bless/session
+cache_file: bless_cache.json
+
+# mfa_cache_dir / mfa_cache_file: If you organization has another tool that generates and
+# caches AWS tokens for your users, you can list it here. Blessclient will attempt to use
+# any cached credentials to identify the user, to reduce the number of times the user must
+# input their MFA code. TODO: make the client gracefully not use this by default.
+mfa_cache_dir: .aws/session
+mfa_cache_file: token_cache.json
+
+# ip_urls: comma-separated list of urls that can provide a user's public IP address. This
+# IP will be added as an authorized IP to the user's certificate, preventing a stolen
+# SSH certificate from being used by another IP.
+ip_urls: http://api.ipify.org, http://canihazip.com
+
+# update_script: This script will be called after 7 days of use, so you can push updates
+# to your users. Your update script should use some mechanism to verify the integrity of
+# the code. Script is relative to the path where blessclient was downloaded.
+update_script: update_blessclient.sh
+
+[LAMBDA]
+# user_role: IAM Role that the user will assume, in order to run the BLESS Lambda. This
+# role should be in the same AWS account as your Lambda.
+user_role: use-bless
+
+# account_id: AWS account id where the BLESS Lambda is setup. For production, you probably
+# want the Lambda running in a separate AWS account, to better protect the CA private key.
+account_id: 000000000000
+
+# functionname: The name of the BLESS Lambda function
+functionname: bless
+
+# functionversion: The version alias we use when invoking the Lambda. If you make a change
+# to the Lambda function's api, then you can bump this version, and new versions of the client
+# code will access the new Lambda. You can also have a set of users call a "canary" version of
+# the Lambda, to test new changes. See the AWS Lambda docs for information about aliases.
+functionversion: PROD-1-2
+
+# certlifetime: Let the client know how long the Lambda will set the certificate's validity.
+# This DOES NOT control the time limit, but lets blessclient know how long to use a certificate
+# before refreshing. TODO: read this directly from the certificate.
+certlifetime: 1800
+
+# ipcachelifetime: How long to cache the user's current public IP address, before querying
+# the ip_urls to see if the user's IP has changed since we last issued a certificate. If your
+# users work from one place, you can set this long (to reduce the time to issue a cert), but
+# if they move around a lot (e.g., ssh-ing from a moving vehicle while tethered) then decrease
+# this. Users can set BLESSIPCACHELIFETIME in their environment to temporarily change this.
+ipcachelifetime: 120
+
+# timeout_connect / timeout_read: Set connection timeouts (in seconds) for the boto3 connection
+# to the AWS Lambda. If the connection fails, the client will try in the next AWS region.
+timeout_connect: 5
+timeout_read: 10
+
+# REGION sections (REGION_<ALIAS>, for each region_aliases defined). Must have the AWS
+# region specified, as well as the kmsauth key in that region.
+[REGION_WEST]
+awsregion: us-west-2
+kmsauthkey: 12345678-abab-cdcd-efef-123456789011
+
+[REGION_EAST]
+awsregion: us-east-1
+kmsauthkey: 22345678-abab-cdcd-efef-123456789012
