@@ -88,7 +88,7 @@ You will probably want to start with the sample config (blessclient.cfg.sample) 
 ### Integrate your client with SSH
 Blessclient will need to be called shortly before your users can ssh into BLESS-configured servers. There are a couple of ways you can accomplish this. To ensure blessclient is always invoked for the most users, Lyft uses both methods, preventing a redundant second run with BLESS_COMPLETE.
 
-1. Wrap your `ssh` command with an alias that calls blessclient first. At Lyft, we alias ssh to a bash script that looks like,
+1) Wrap your `ssh` command with an alias that calls blessclient first. At Lyft, we alias ssh to a bash script that looks like,
 
 ```
 #!/bin/bash
@@ -107,7 +107,7 @@ BLESS_COMPLETE=1 ssh "$@"
 
 This is nice because the user can interact with blessclient and put their MFA code (if needed) into the shell prompt.
 
-2. Add a `Match exec` line to your ssh_config file. You can add something like,
+2) Add a `Match exec` line to your ssh_config file. You can add something like,
 
 ```
 Match exec "env | grep -q BLESS_COMPLETE || /Users/stype/blessclient/blessclient.run --gui --host '%h'"
