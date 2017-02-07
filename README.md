@@ -4,9 +4,9 @@ A client for interacting with [BLESS](https://github.com/lyft/bless) services fr
 ## Requirements
 Blessclient is a python client that should run without modification on OSX 10.10 - 10.12, and Ubuntu 16.04. Other linux versions should work fine, but we test the client on 16.04.
 
-Users should be running a recent version of python 2.7 (OSX comes with 2.7.10), and need pip and virtualenv installed if they will be building the client locally. We distribute blessclient with a Makefile, but you can easily duplicate those steps in another scripting language if your users don't have make installed.
+  * Users should be running a recent version of python 2.7 (OSX comes with 2.7.10), and need pip and virtualenv installed if they will be building the client locally. We distribute blessclient with a Makefile, but you can easily duplicate those steps in another scripting language if your users don't have make installed.
 
-It's required that your AWS user names match the ssh username used by your users. The ssh certificate issued by the BLESS Lambda specifies the username allowed the login with the certificate, and we use the user's AWS username for this. The BLESS Lambda and kmsauth could be modified to change this requirement, but we don't support that at this time.
+  * It's required that your AWS user names match the ssh username used by your users. The ssh certificate issued by the BLESS Lambda specifies the username allowed the login with the certificate, and we use the user's AWS username for this. The BLESS Lambda and kmsauth could be modified to change this requirement, but we don't support that at this time.
 
 ## Installation
 To get to the point where you can login to a server using your bless'ed SSH certificate, you will need:
