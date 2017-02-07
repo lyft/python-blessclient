@@ -1,6 +1,8 @@
 # Blessclient
 A client for interacting with [BLESS](https://github.com/lyft/bless) services from users' laptops. Blessclient optimizes to ensure that users can always use ssh as they normally would with a fixed key, with minimal delay.
 
+[Netflix's BLESS](https://github.com/netflix/bless) was designed to issue short-lived certificates to users after they logged into a bastion service, that would be used to authenticate the user to other hosts within the cluster. Lyft wanted to use ephemeral ssh certificates for our users too, but wanted to issue these certificates directly to users' laptops, instead of on the bastion. We were able to accomplish this by making a few modifications to Netflix's BLESS and deploying this project, blessclient, to our users' laptops. Doing this allowed Lyft to improve security by extending the existing multi-factor authentication (MFA) setup that we had with AWS to SSH, as well as simplifying our provisioning and deprovisioning process.
+
 ## Requirements
 Blessclient is a python client that should run without modification on OSX 10.10 - 10.12, and Ubuntu 16.04. Other linux versions should work fine, but we test the client on 16.04.
 
@@ -10,15 +12,15 @@ Blessclient is a python client that should run without modification on OSX 10.10
 
 ## Installation
 To get to the point where you can login to a server using your bless'ed SSH certificate, you will need:
-  * A BLESS Lambda that signs your users' public keys, and is trusted by your SSH hosts. See [Lyft's BLESS](https://github.com/lyft/bless/tree/lyft_base).
+  * [Lyft's fork of BLESS](https://github.com/lyft/bless/tree/lyft_base) which signs your users' public keys, and is trusted by your SSH hosts.
   * Your SSH server configured to trust the Lambda as Certificate Authority
-  * A client (this project!) which talks to the Lambda to get a new SSH certificate
+  * Blessclient (this project!) which talks to the Lambda to get a new SSH certificate
   * Some configuration work to have blessclient invoked when the user runs SSH
 
 ### Run a BLESS Lambda in AWS
 Run Lyft's fork of Netflix's BLESS in your AWS account. There are two major additions that our fork includes which have not been upstreamed yet:
   * The client authenticates to the Lambda using a [kmsauth](https://github.com/lyft/python-kmsauth) token. This allows the Lambda to authenticate the user and issue the certificate for their username, even if the AWS user is in a different AWS account.
-  * We allow a list of IP address or cidr blocks for the user's IP and bastion IP addresses, whereas Netflix's BLESS only allows a single IP for each.
+  * We allow a list of IP addresses or cidr blocks for the user's IP and bastion IP addresses, whereas Netflix's BLESS only allows a single IP for each.
 
 The lambda execution role will need permissions to decrypt the CA private key in your configuration, as well as permission to decrypt kmsauth tokens (see below).
 
@@ -126,9 +128,7 @@ When your users run blessclient, the rough list of things done is:
 Blessclient aggressively caches artifacts, and can issue a certificate with a single round-trip to call the Lambda if a current kmsauth token and role credentials are cached.
 
 ## Automatically updating the client
-If you are using a real endpoint management system to deploy software onto your users laptops, you can ignore this!
-
-If your users' laptops are relatively unmanaged, you will probably want to have them automatically update their copy of blessclient. After 7 days of use, blessclient will run an update script automatically, which is configurable in blessclient.cfg ('update_script' in the CLIENT section). The update script does not block the client's execution (we don't want to make users wait for a client update if they are responding to an emergency). The script could be as simple as `git pull && make client`. At Lyft, the update process also verifies that the update target (in our deployment repo) is signed by a trusted GPG key.
+After you've taken the time to get all of your users to install blessclient, it's useful to ensure that your users automatically update their copy of client. If you don't want to do this via a traditional endpoint management system, blessclient can be setup to run an update script automatically after 7 days of use. The update script is configurable in blessclient.cfg ('update_script' in the CLIENT section). The update script does not block the client's execution (we don't want to make users wait for a client update if they are responding to an emergency). The script could be as simple as `git pull && make client`. At Lyft, the update process verifies that the update target (in our deployment repo) is signed by a trusted GPG key.
 
 ## Contributing
 This project is governed by [Lyft's code of conduct](https://github.com/lyft/code-of-conduct). For your PR's to be accepted, you'll need to sign our [CLA](https://oss.lyft.com/cla).
