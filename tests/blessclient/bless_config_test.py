@@ -17,6 +17,7 @@ mfa_cache_dir: .aws-mfa/session
 mfa_cache_file: token_cache.json
 ip_urls: http://checkip.amazonaws.com, http://api.ipify.org
 update_script: autoupdate.sh
+user_session_length: 3600
 
 [LAMBDA]
 user_role: use-bless
@@ -105,7 +106,9 @@ def test_load_config():
             'cache_dir': '.aws-mfa/session',
             'mfa_cache_file': 'token_cache.json',
             'ip_urls': ['http://checkip.amazonaws.com', 'http://api.ipify.org'],
-            'update_script': 'autoupdate.sh'
+            'update_script': 'autoupdate.sh',
+            'user_session_length': 3600,
+            'usebless_role_session_length': 3600, # comes from BlessConfig.DEFAULT_CONFIG
         }
     }
 
