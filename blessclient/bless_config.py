@@ -3,6 +3,11 @@ import ConfigParser
 
 class BlessConfig(object):
 
+    DEFAULT_CONFIG = {
+        'user_session_length': '64800',
+        'usebless_role_session_length': '3600',
+    }
+
     def __init__(self):
         self.blessconfig = None
 
@@ -18,7 +23,7 @@ class BlessConfig(object):
         }
 
     def parse_config_file(self, config_file):
-        config = ConfigParser.SafeConfigParser()
+        config = ConfigParser.SafeConfigParser(self.DEFAULT_CONFIG)
         loaded = config.readfp(config_file)
 
         blessconfig = {
@@ -29,7 +34,9 @@ class BlessConfig(object):
                 'mfa_cache_dir': config.get('CLIENT', 'mfa_cache_dir'),
                 'mfa_cache_file': config.get('CLIENT', 'mfa_cache_file'),
                 'ip_urls': map(str.strip, config.get('CLIENT', 'ip_urls').split(",")),
-                'update_script': config.get('CLIENT', 'update_script')
+                'update_script': config.get('CLIENT', 'update_script'),
+                'user_session_length': int(config.get('CLIENT', 'user_session_length')),
+                'usebless_role_session_length': int(config.get('CLIENT', 'usebless_role_session_length')),
             },
             'BLESS_CONFIG': {
                 'userrole': config.get('LAMBDA', 'user_role'),

@@ -110,11 +110,19 @@ def get_kmsauth_config(region, bless_config):
 
 
 def get_blessrole_credentials(iam_client, creds, blessconfig, bless_cache):
-
+    """
+    Args:
+        iam_client: boto3 iam client
+        creds: User credentials with rights to assume the use-bless role, or None for boto to
+            use its default search
+        blessconfig: BlessConfig object
+        bless_cache: BlessCache object
+    """
     role_creds = uncache_creds(bless_cache.get('blessrole_creds'))
     if role_creds and role_creds['Expiration'] > time.gmtime():
         return role_creds
 
+    lambda_config = blessconfig.get_lambda_config()
     if creds is not None:
         mfa_sts_client = boto3.client(
             'sts',
@@ -135,8 +143,8 @@ def get_blessrole_credentials(iam_client, creds, blessconfig, bless_cache):
 
     role_arn = awsmfautils.get_role_arn(
         user_arn,
-        blessconfig['userrole'],
-        blessconfig['accountid']
+        lambda_config['userrole'],
+        lambda_config['accountid']
     )
 
     logging.debug("Role Arn: {}".format(role_arn))
@@ -144,7 +152,7 @@ def get_blessrole_credentials(iam_client, creds, blessconfig, bless_cache):
     role_creds = mfa_sts_client.assume_role(
         RoleArn=role_arn,
         RoleSessionName='mfaassume',
-        DurationSeconds=3600,
+        DurationSeconds=blessconfig.get_client_config()['usebless_role_session_length'],
     )['Credentials']
 
     logging.debug("Role Credentials: {}".format(role_creds))
@@ -460,7 +468,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
                 logging.debug(
                     "Got kmsauth token by default creds: {}".format(kmsauth_token))
                 role_creds = get_blessrole_credentials(
-                    aws.iam_client(), None, bless_lambda_config, bless_cache)
+                    aws.iam_client(), None, bless_config, bless_cache)
                 logging.debug("Default creds used to assume role use-bless")
             except:
                 pass  # TODO
@@ -479,7 +487,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
                     logging.debug(
                         "Got kmsauth token by cached creds: {}".format(kmsauth_token))
                     role_creds = get_blessrole_credentials(
-                        aws.iam_client(), creds, bless_lambda_config, bless_cache)
+                        aws.iam_client(), creds, bless_config, bless_cache)
                     logging.debug("Assumed role use-bless using cached creds")
             except:
                 pass
@@ -492,7 +500,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
         mfa_arn = awsmfautils.get_serial(aws.iam_client(), username)
         try:
             creds = aws.sts_client().get_session_token(
-                DurationSeconds=129600,
+                DurationSeconds=bless_config.get_client_config()['user_session_length'],
                 SerialNumber=mfa_arn,
                 TokenCode=mfa_pin
             )['Credentials']
@@ -510,7 +518,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
         )
         logging.debug("Got kmsauth token: {}".format(kmsauth_token))
         role_creds = get_blessrole_credentials(
-            aws.iam_client(), creds, bless_lambda_config, bless_cache)
+            aws.iam_client(), creds, bless_config, bless_cache)
 
     bless_lambda = BlessLambda(bless_lambda_config, role_creds, kmsauth_token, region)
 

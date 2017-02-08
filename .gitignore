@@ -6,3 +6,4 @@ venv/
 blessclient.run
 blessclient.egg-info/
 build/
+blessclient.cfg

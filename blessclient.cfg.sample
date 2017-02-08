@@ -47,6 +47,14 @@ ip_urls: http://api.ipify.org, http://canihazip.com
 # the code. Script is relative to the path where blessclient was downloaded.
 update_script: update_blessclient.sh
 
+# user_session_length: The length of time that we request AWS issues the session tokens for
+# when the user inputs their MFA code. This defaults to 64800 seconds (18 hours). The value
+# must be in the range 900-129600, or the sts call will fail.
+
+# usebless_role_session_length: Then length of time that we request AWS issues the session
+# tokens for when the user assumes the role necessary to call the BLESS Lambda. The default
+# is 3600 seconds (1 hour). The value must be in the range 900-3600.
+
 [LAMBDA]
 # user_role: IAM Role that the user will assume, in order to run the BLESS Lambda. This
 # role should be in the same AWS account as your Lambda.
