@@ -19,6 +19,7 @@ def unset_token():
     unset_var('AWS_SECRET_ACCESS_KEY')
     unset_var('AWS_SESSION_TOKEN')
     unset_var('AWS_SECURITY_TOKEN')
+    unset_var('AWS_SHARED_CREDENTIALS_FILE')
 
 
 def unset_var(var):
