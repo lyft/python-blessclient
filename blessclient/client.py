@@ -6,7 +6,6 @@ from botocore.exceptions import (ClientError,
                                  ConnectionError,
                                  EndpointConnectionError)
 
-
 import kmsauth
 import os
 import sys
@@ -630,7 +629,7 @@ def main():
         except (LambdaInvocationException, ConnectionError, EndpointConnectionError) as e:
             logging.info(
                 'Lambda execution error: {}. Trying again in the alternate region.'.format(str(e)))
-            alternate_region = bless_config.get_alternate_region(region)
+            alternate_region = get_alternate_region(region, bless_config)
             bless(alternate_region, args.nocache, args.gui)
         sys.exit(0)
     else:
