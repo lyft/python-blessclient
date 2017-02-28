@@ -627,7 +627,8 @@ def main():
     if re.match(bless_config.get_client_config()['domain_regex'], args.host) or args.host == 'BLESS':
         try:
             bless(region, args.nocache, args.gui, args.host, bless_config)
-        except (LambdaInvocationException, ConnectionError, EndpointConnectionError) as e:
+        except (ClientError, LambdaInvocationException, ConnectionError,
+                EndpointConnectionError) as e:
             logging.info(
                 'Lambda execution error: {}. Trying again in the alternate region.'.format(str(e)))
             alternate_region = bless_config.get_alternate_region(region)
