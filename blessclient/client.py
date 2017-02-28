@@ -631,7 +631,7 @@ def main():
             logging.info(
                 'Lambda execution error: {}. Trying again in the alternate region.'.format(str(e)))
             alternate_region = get_alternate_region(region, bless_config)
-            bless(alternate_region, args.nocache, args.gui)
+            bless(alternate_region, args.nocache, args.gui, args.host, bless_config)
         sys.exit(0)
     else:
         sys.exit(1)
