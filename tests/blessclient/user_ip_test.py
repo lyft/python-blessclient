@@ -12,6 +12,11 @@ def test_getIP_fresh():
     assert user_ip.getIP() == '1.1.1.1'
 
 
+def test_fixed_ip():
+    user_ip = UserIP(None, 10, IP_URLS, '1.2.3.4')
+    assert user_ip.getIP() == '1.2.3.4'
+
+
 def test_getIP_cached():
     bc = BlessCache(None, None, BlessCache.CACHEMODE_ENABLED)
     bc.cache = {}
