@@ -447,7 +447,8 @@ def bless(region, nocache, showgui, hostname, bless_config):
     userIP = UserIP(
         bless_cache=bless_cache,
         maxcachetime=bless_lambda_config['ipcachelifetime'],
-        ip_urls=bless_config.get_client_config()['ip_urls'])
+        ip_urls=bless_config.get_client_config()['ip_urls'],
+        fixed_ip=os.getenv('BLESSFIXEDIP', False))
 
     # Check if we can skip asking for MFA code
     if nocache is not True:

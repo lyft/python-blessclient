@@ -6,12 +6,15 @@ from urllib2 import urlopen
 
 class UserIP(object):
 
-    def __init__(self, bless_cache, maxcachetime, ip_urls):
+    def __init__(self, bless_cache, maxcachetime, ip_urls, fixed_ip=False):
         self.fresh = False
         self.currentIP = None
         self.cache = bless_cache
         self.maxcachetime = maxcachetime
         self.ip_urls = ip_urls
+        if fixed_ip:
+            self.currentIP = fixed_ip
+            self.fresh = True
 
     def getIP(self):
         if self.fresh and self.currentIP:
