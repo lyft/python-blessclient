@@ -540,7 +540,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
     payload = {
         'bastion_user': username,
         'bastion_user_ip': my_ip,
-        'remote_username': username,
+        'remote_usernames': username,
         'bastion_ips': bless_config.get_aws_config()['bastion_ips'],
         'command': '*',
         'public_key_to_sign': public_key,
@@ -549,7 +549,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
 
     logging.debug("Got back cert: {}".format(cert))
 
-    if cert[:30] != '"ssh-rsa-cert-v01@openssh.com ':
+    if cert[:29] != 'ssh-rsa-cert-v01@openssh.com ':
         error_msg = json.loads(cert)
         if ('errorType' in error_msg
             and error_msg['errorType'] == 'KMSAuthValidationError'
@@ -577,7 +577,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
 
     ssh_agent_remove_bless(identity_file)
     with open(cert_file, 'w') as cert_file:
-        cert_file.write(cert[1:len(cert) - 3])
+        cert_file.write(cert)
     ssh_agent_add_bless(identity_file)
 
     bless_cache.set('certip', my_ip)
