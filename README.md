@@ -12,15 +12,13 @@ Blessclient is a python client that should run without modification on OSX 10.10
 
 ## Installation
 To get to the point where you can login to a server using your bless'ed SSH certificate, you will need:
-  * [Lyft's fork of BLESS](https://github.com/lyft/bless/tree/lyft_base) which signs your users' public keys, and is trusted by your SSH hosts.
+  * [Netflix's BLESS](https://github.com/Netflix/bless), using [commit 8df7f6d](https://github.com/Netflix/bless/tree/8df7f6d181c24d7b64e7c1827432920d6bb71249) or later, which signs your users' public keys, and is trusted by your SSH hosts.
   * Your SSH server configured to trust the Lambda as Certificate Authority
   * Blessclient (this project!) which talks to the Lambda to get a new SSH certificate
   * Some configuration work to have blessclient invoked when the user runs SSH
 
 ### Run a BLESS Lambda in AWS
-Run Lyft's fork of Netflix's BLESS in your AWS account. There are two major additions that our fork includes which have not been upstreamed yet:
-  * The client authenticates to the Lambda using a [kmsauth](https://github.com/lyft/python-kmsauth) token. This allows the Lambda to authenticate the user and issue the certificate for their username, even if the AWS user is in a different AWS account.
-  * We allow a list of IP addresses or cidr blocks for the user's IP and bastion IP addresses, whereas Netflix's BLESS only allows a single IP for each.
+Run Netflix's BLESS in your AWS account.
 
 The lambda execution role will need permissions to decrypt the CA private key in your configuration, as well as permission to decrypt kmsauth tokens (see below).
 

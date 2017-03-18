@@ -49,4 +49,7 @@ class BlessLambda(object):
         except ValueError:
             # On a 404, boto tries to decode any body as json
             raise LambdaInvocationException('Invalid message format in Lambda response')
-        return response['Payload'].read()
+        payload = json.loads(response['Payload'].read())
+        if 'certificate' not in payload:
+            raise LambdaInvocationException('No certificate in response.')
+        return payload['certificate']
