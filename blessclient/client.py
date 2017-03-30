@@ -537,11 +537,12 @@ def bless(region, nocache, showgui, hostname, bless_config):
             'Refusing to bless {}. Probably not an identity file.'.format(identity_file))
 
     my_ip = userIP.getIP()
+    ip_list = "{},{}".format(my_ip, bless_config.get_aws_config()['bastion_ips'])
     payload = {
         'bastion_user': username,
         'bastion_user_ip': my_ip,
         'remote_usernames': username,
-        'bastion_ips': bless_config.get_aws_config()['bastion_ips'],
+        'bastion_ips': ip_list,
         'command': '*',
         'public_key_to_sign': public_key,
     }
