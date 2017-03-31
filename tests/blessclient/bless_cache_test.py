@@ -35,3 +35,10 @@ def test_load_cache(tmpdir):
     bc = BlessCache(str(tmpdir), 'readcache', BlessCache.CACHEMODE_ENABLED)
     bar = bc.get('foo')
     assert bar == 'bar'
+
+
+def test_load_cache(tmpdir):
+    tmpdir.join('readcache_corrupted').write('{"foo": "bar"}}}')
+    bc = BlessCache(str(tmpdir), 'readcache_corrupted', BlessCache.CACHEMODE_ENABLED)
+    bar = bc.get('foo')
+    assert bar == None

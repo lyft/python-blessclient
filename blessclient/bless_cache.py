@@ -41,7 +41,10 @@ class BlessCache(object):
         cache_file_path = os.path.join(self.filepath, self.filename)
         if os.path.isfile(cache_file_path):
             with open(cache_file_path, 'r') as cache:
-                self.cache = json.load(cache)
+                try:
+                    self.cache = json.load(cache)
+                except:
+                    logging.error("Corrupted cache, using empty cache")
         logging.debug("Cache loaded: {}".format(self.cache))
 
     def saveCache(self):
