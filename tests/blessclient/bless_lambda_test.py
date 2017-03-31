@@ -32,7 +32,7 @@ def lyftbless():
 
 def test_getCert(mocker, lyftbless):
     payloadmock = mocker.MagicMock()
-    payloadmock.read.return_value = 'The Cert'
+    payloadmock.read.return_value = '{"certificate": "The Cert"}'
     clientmock = mocker.MagicMock()
     clientmock.invoke.return_value = {
         'StatusCode': 200,
