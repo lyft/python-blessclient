@@ -77,23 +77,25 @@ def get_region_from_code(region_code, bless_config):
         raise ValueError('Unrecognized region code: {}'.format(region_code))
 
 
-def get_alternate_region(region, bless_config):
-    """ Get another AWS region where blessclient can run to get a certificate
+def get_regions(region, bless_config):
+    """ Get an ordered list of regions in which to run bless_config
     Args:
         region (str): the current AWS region code (e.g., 'us-east-1') where blessclient
             has attempted to run and failed.
         bless_config (dict): config from BlessConfig
     Returns:
-        The next AWS region code that blessclient should attempt to use to get a certificate.
+        List of regions
     """
-    aliases = bless_config.get('REGION_ALIAS')
-    aws_regions = aliases.values()
+    regions = []
+    aws_regions = bless_config.get('REGION_ALIAS').values()
     try:
-        current_ndx = aws_regions.index(region)
+        ndx = aws_regions.index(region)
     except ValueError:
-        current_ndx = -1
-    next_ndx = (current_ndx + 1) % len(aws_regions)
-    return aws_regions[next_ndx]
+        ndx = 0
+    while len(regions) < len(aws_regions):
+        regions.append(aws_regions[ndx])
+        ndx = (ndx + 1) % len(aws_regions)
+    return regions
 
 
 def get_kmsauth_config(region, bless_config):
@@ -624,17 +626,23 @@ def main():
     config_filename = args.config if args.config else get_default_config_filename()
     with open(config_filename, 'r') as f:
         bless_config.set_config(bless_config.parse_config_file(f))
-    region = get_region_from_code(args.region, bless_config)
     if re.match(bless_config.get_client_config()['domain_regex'], args.host) or args.host == 'BLESS':
-        try:
-            bless(region, args.nocache, args.gui, args.host, bless_config)
-        except (ClientError, LambdaInvocationException, ConnectionError,
-                EndpointConnectionError) as e:
-            logging.info(
-                'Lambda execution error: {}. Trying again in the alternate region.'.format(str(e)))
-            alternate_region = get_alternate_region(region, bless_config)
-            bless(alternate_region, args.nocache, args.gui, args.host, bless_config)
-        sys.exit(0)
+        start_region = get_region_from_code(args.region, bless_config)
+        success = False
+        for region in get_regions(start_region, bless_config):
+            try:
+                bless(region, args.nocache, args.gui, args.host, bless_config)
+                success = True
+                break
+            except (ClientError, LambdaInvocationException, ConnectionError,
+                    EndpointConnectionError) as e:
+                logging.info(
+                    'Lambda execution error: {}. Trying again in the alternate region.'.format(str(e)))
+        if success:
+            sys.exit(0)
+        else:
+            sys.stderr.write('Could not connect to BLESS in any configured region.\n')
+            sys.exit(1)
     else:
         sys.exit(1)
 
