@@ -65,9 +65,10 @@ def test_get_region_from_code(bless_config):
         client.get_region_from_code('foobar', bless_config)
 
 
-def test_get_alternate_region(bless_config):
-    assert client.get_alternate_region('us-west-2', bless_config) == 'us-east-1'
-    assert client.get_alternate_region('us-east-1', bless_config) == 'us-west-2'
+def test_get_regions(bless_config):
+    assert client.get_regions('us-west-2', bless_config) == ['us-west-2', 'us-east-1']
+    assert client.get_regions('us-east-1', bless_config) == ['us-east-1', 'us-west-2']
+    assert client.get_regions('FOOBAR', bless_config) == ['us-east-1', 'us-west-2']
 
 
 def test_get_kmsauth_config(bless_config):
