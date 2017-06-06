@@ -6,6 +6,7 @@ class BlessConfig(object):
     DEFAULT_CONFIG = {
         'user_session_length': '64800',
         'usebless_role_session_length': '3600',
+        'remote_user': None,
     }
 
     def __init__(self):
@@ -51,7 +52,8 @@ class BlessConfig(object):
                 }
             },
             'AWS_CONFIG': {
-                'bastion_ips': config.get('MAIN', 'bastion_ips')
+                'bastion_ips': config.get('MAIN', 'bastion_ips'),
+                'remote_user': config.get('MAIN', 'remote_user')
             },
             'REGION_ALIAS': {}
         }
