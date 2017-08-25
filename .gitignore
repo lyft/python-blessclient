@@ -1,6 +1,7 @@
 *.pyc
 .coverage
 .cache
+.DS_Store
 coverage.xml
 venv/
 blessclient.run
