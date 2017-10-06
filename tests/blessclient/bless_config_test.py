@@ -18,6 +18,7 @@ mfa_cache_file: token_cache.json
 ip_urls: http://checkip.amazonaws.com, http://api.ipify.org
 update_script: autoupdate.sh
 user_session_length: 3600
+update_sshagent: false
 
 [LAMBDA]
 user_role: use-bless
@@ -109,6 +110,7 @@ def test_load_config():
             'update_script': 'autoupdate.sh',
             'user_session_length': 3600,
             'usebless_role_session_length': 3600, # comes from BlessConfig.DEFAULT_CONFIG
+            'update_sshagent': False
         }
     }
 
@@ -122,6 +124,8 @@ def test_get_region_alias_from_aws_region(bless_config_test):
 def test_get_configs(bless_config_test):
     client_config = bless_config_test.get_client_config()
     assert 'domain_regex' in client_config
+    assert bool(client_config['update_sshagent']) is False
+    assert type(client_config['update_sshagent']).__name__ == 'bool'
     lambda_config = bless_config_test.get_lambda_config()
     assert 'functionname' in lambda_config
     aws_config = bless_config_test.get_aws_config()

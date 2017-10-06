@@ -6,6 +6,7 @@ class BlessConfig(object):
     DEFAULT_CONFIG = {
         'user_session_length': '64800',
         'usebless_role_session_length': '3600',
+        'update_sshagent': 'true',
     }
 
     def __init__(self):
@@ -22,6 +23,13 @@ class BlessConfig(object):
             'awsregion': config.get(section, 'awsregion')
         }
 
+    def _strtobool(self, config):
+        if str(config).lower() in ("y", "yes", "true", "on", "1"):
+            return True
+        if str(config).lower() in ("n", "no", "false", "off", "0"):
+            return False
+        raise ValueError('Unexpected value: {}'.format(config))
+
     def parse_config_file(self, config_file):
         config = ConfigParser.SafeConfigParser(self.DEFAULT_CONFIG)
         loaded = config.readfp(config_file)
@@ -37,6 +45,7 @@ class BlessConfig(object):
                 'update_script': config.get('CLIENT', 'update_script'),
                 'user_session_length': int(config.get('CLIENT', 'user_session_length')),
                 'usebless_role_session_length': int(config.get('CLIENT', 'usebless_role_session_length')),
+                'update_sshagent': bool(self._strtobool(config.get('CLIENT', 'update_sshagent'))),
             },
             'BLESS_CONFIG': {
                 'userrole': config.get('LAMBDA', 'user_role'),
