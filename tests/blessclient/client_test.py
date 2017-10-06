@@ -141,9 +141,25 @@ def test_uncache_creds():
     assert returned['Expiration'] < time.gmtime()
 
 
-def test_ssh_agent_remove_bless(mocker):
+def test_ssh_agent_contains_identity(mocker):
     outputmock = mocker.patch('subprocess.check_output')
     outputmock.return_value = '4096 SHA256:hwnh3ccCcxVUo6T6htWvHdkCx/UsNklwy2uQuiBaTLQ /Users/foobar/.ssh/blessid (RSA-CERT)'
+    returned = client.ssh_agent_contains_identity('.ssh/blessid')
+    assert returned
+    outputmock.assert_called_once()
+
+
+def test_ssh_agent_contains_identity_false(mocker):
+    outputmock = mocker.patch('subprocess.check_output')
+    outputmock.return_value = ''
+    returned = client.ssh_agent_contains_identity('.ssh/blessid')
+    assert not returned
+    outputmock.assert_called_once()
+
+
+def test_ssh_agent_remove_bless(mocker):
+    outputmock = mocker.patch( 'blessclient.client.ssh_agent_contains_identity' )
+    outputmock.return_value = True
     callmock = mocker.patch('subprocess.check_call')
     client.ssh_agent_remove_bless('blessid')
     outputmock.assert_called_once()
@@ -151,22 +167,22 @@ def test_ssh_agent_remove_bless(mocker):
 
 
 def test_ssh_agent_add_bless(mocker):
-    outputmock = mocker.patch('subprocess.check_output')
-    outputmock.return_value = '4096 SHA256:hwnh3ccCcxVUo6T6htWvHdkCx/UsNklwy2uQuiBaTLQ /Users/foobar/.ssh/blessid (RSA-CERT)'
+    outputmock = mocker.patch( 'blessclient.client.ssh_agent_contains_identity' )
+    outputmock.side_effect = [ False, True ]
     callmock = mocker.patch('subprocess.check_call')
     client.ssh_agent_add_bless('.ssh/blessid')
-    outputmock.assert_called_once()
+    assert 2==outputmock.call_count
     callmock.assert_called_once()
 
 
 def test_ssh_agent_add_bless_failed(mocker):
-    outputmock = mocker.patch('subprocess.check_output')
-    outputmock.return_value = ''
+    outputmock = mocker.patch( 'blessclient.client.ssh_agent_contains_identity' )
+    outputmock.return_value = False
     callmock = mocker.patch('subprocess.check_call')
     logmock = mocker.patch('logging.debug')
     writemock = mocker.patch('sys.stderr.write')
     client.ssh_agent_add_bless('.ssh/blessid')
-    outputmock.assert_called_once()
+    assert 2==outputmock.call_count
     callmock.assert_called_once()
     logmock.assert_called_once()
     writemock.assert_called_once()
