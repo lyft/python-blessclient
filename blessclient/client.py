@@ -578,11 +578,12 @@ def bless(region, nocache, showgui, hostname, bless_config):
         raise LambdaInvocationException(
             'BLESS client did not recieve a valid cert. Instead got: {}'.format(cert))
 
+    with open(cert_file, 'w') as cert_file:
+        cert_file.write(cert)
+
     # Check if we can skip adding identity into the running ssh-agent
     if bless_config.get_client_config()['update_sshagent'] is True:
         ssh_agent_remove_bless(identity_file)
-        with open(cert_file, 'w') as cert_file:
-            cert_file.write(cert)
         ssh_agent_add_bless(identity_file)
     else:
         logging.info(
