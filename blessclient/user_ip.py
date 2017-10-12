@@ -1,7 +1,10 @@
 import contextlib
 import logging
+import string
 import time
 from urllib2 import urlopen
+
+VALID_IP_CHARACTERS = string.hexdigits + '.:'
 
 
 class UserIP(object):
@@ -49,7 +52,11 @@ class UserIP(object):
         try:
             with contextlib.closing(urlopen(url, timeout=2)) as f:
                 if f.getcode() == 200:
-                    return f.read().strip()
+                    content = f.read().strip()
+                    for c in content[:40]:
+                        if c not in VALID_IP_CHARACTERS:
+                            raise ValueError("Public IP response included invalid character '{}'.".format(c))
+                    return content
         except:
             logging.debug('Could not refresh public IP from {}'.format(url), exc_info=True)
 
