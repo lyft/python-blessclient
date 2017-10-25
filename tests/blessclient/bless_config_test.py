@@ -8,6 +8,7 @@ TEST_CONFIG = """
 region_aliases: iad, SFO
 kms_service_name: bless-production
 bastion_ips: 10.0.0.0/8,192.168.192.1
+remote_user: foo
 
 [CLIENT]
 domain_regex: (i-.*|.*\.example\.com|\A10\.0(?:\.[0-9]{1,3}){2}\Z)$
@@ -97,7 +98,8 @@ def test_load_config():
             'accountid': '111111111111'
         },
         'AWS_CONFIG': {
-            'bastion_ips': '10.0.0.0/8,192.168.192.1'
+            'bastion_ips': '10.0.0.0/8,192.168.192.1',
+            'remote_user': 'foo'
         },
         'CLIENT_CONFIG': {
             'domain_regex': '(i-.*|.*\\.example\\.com|\\A10\\.0(?:\\.[0-9]{1,3}){2}\\Z)$',
@@ -126,6 +128,7 @@ def test_get_configs(bless_config_test):
     assert 'functionname' in lambda_config
     aws_config = bless_config_test.get_aws_config()
     assert 'bastion_ips' in aws_config
+    assert 'remote_user' in aws_config
 
 
 def test_set_lambda_config(bless_config_test):
