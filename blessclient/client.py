@@ -20,7 +20,13 @@ import json
 from random import randint
 
 import awsmfautils
-import tokengui
+
+ENABLE_GUI=True
+try:
+    import tokengui
+except ImportError:
+    ENABLE_GUI=False
+
 from bless_aws import BlessAWS
 from bless_cache import BlessCache
 from user_ip import UserIP
@@ -202,7 +208,7 @@ def get_mfa_token_gui(message):
 
 def get_mfa_token(showgui, message):
     mfa_token = None
-    if showgui:
+    if showgui and ENABLE_GUI:
         mfa_token = get_mfa_token_gui(message)
     else:
         mfa_token = get_mfa_token_cli()
