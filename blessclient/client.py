@@ -540,10 +540,13 @@ def bless(region, nocache, showgui, hostname, bless_config):
 
     my_ip = userIP.getIP()
     ip_list = "{},{}".format(my_ip, bless_config.get_aws_config()['bastion_ips'])
+    remote_user = bless_config.get_aws_config()['remote_user']
+    if remote_user is None:
+        remote_user = username
     payload = {
         'bastion_user': username,
         'bastion_user_ip': my_ip,
-        'remote_usernames': username,
+        'remote_usernames': remote_user,
         'bastion_ips': ip_list,
         'command': '*',
         'public_key_to_sign': public_key,

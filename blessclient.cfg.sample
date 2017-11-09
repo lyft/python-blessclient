@@ -18,6 +18,9 @@ kms_service_name: bless-production
 # the internal IP of each should be listed here.
 bastion_ips: 10.100.1.230,192.168.200.0/24
 
+# remote_user: The remote username to authorize for SSH within the certificate. 
+# Defaults to the AWS user requesting the certificate
+
 [CLIENT]
 # domain_regex: A (python) regex that is tested by the blessclient to determine if we need
 # to run bless and get a certificate, or if we can skip it. This prevents blessclient from
