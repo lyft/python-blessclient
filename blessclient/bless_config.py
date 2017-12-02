@@ -41,6 +41,7 @@ class BlessConfig(object):
                 'usebless_role_session_length': int(config.get('CLIENT', 'usebless_role_session_length')),
             },
             'BLESS_CONFIG': {
+                'ca_backend': config.get('MAIN', 'ca_backend'),
                 'userrole': config.get('LAMBDA', 'user_role'),
                 'accountid': config.get('LAMBDA', 'account_id'),
                 'functionname': config.get('LAMBDA', 'functionname'),
@@ -55,6 +56,12 @@ class BlessConfig(object):
             'AWS_CONFIG': {
                 'bastion_ips': config.get('MAIN', 'bastion_ips'),
                 'remote_user': config.get('MAIN', 'remote_user')
+            },
+            'VAULT_CONFIG': {
+                'vault_addr': config.get('VAULT', 'vault_addr'),
+                'auth_mount': config.get('VAULT', 'auth_mount'),
+                'ssh_backend_mount': config.get('VAULT', 'ssh_backend_mount'),
+                'ssh_backend_role': config.get('VAULT', 'ssh_backend_role'),
             },
             'REGION_ALIAS': {}
         }

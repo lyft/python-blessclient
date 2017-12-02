@@ -17,6 +17,10 @@ import argparse
 import copy
 import subprocess
 import json
+import hvac
+import getpass
+
+from random import randint
 
 import six
 
@@ -26,6 +30,7 @@ from .bless_cache import BlessCache
 from .user_ip import UserIP
 from .bless_lambda import BlessLambda
 from .bless_config import BlessConfig
+from .vault_ca import VaultCA
 from .lambda_invocation_exception import LambdaInvocationException
 
 import logging
@@ -429,6 +434,188 @@ def update_config_from_env(bless_config):
         bless_config.set_lambda_config('ipcachelifetime', lifetime)
 
 
+def get_linux_username(username):
+    """
+    Returns a linux safe username.
+    :param username: Name of the user (could include @domain.com)
+    :return: Username string that complies with IEEE Std 1003.1-2001
+    """
+    match = re.search('[.a-zA-Z]+', username)
+    return match.group(0)
+
+
+def get_cached_auth_token(bless_cache):
+    """
+    Returns cached Vault auth token if available, otherwise None
+    :param bless_cache: Bless cache object
+    :return: Vault auth token or None if no valid token cached
+    """
+    vault_creds = bless_cache.get('vault_creds')
+    if vault_creds is None or vault_creds['expiration'] is None:
+        return None
+    else:
+        expiration = vault_creds['expiration']
+        if datetime.datetime.utcnow() < datetime.datetime.strptime(expiration, '%Y%m%dT%H%M%SZ'):
+            logging.debug(
+                'Using cached vault token, good until {}'.format(expiration))
+            return vault_creds['token']
+        else:
+            return None
+
+
+def get_credentials():
+    print "Enter Vault username:"
+    username = raw_input()
+    password = getpass.getpass(prompt="Password (will be hidden):")
+    return username, password
+
+
+def auth_okta(client, auth_mount, bless_cache):
+    """
+    Authenticates a user in HashiCorp Vault using Okta
+    :param bless_cache: Bless Cache to cache auth token
+    :param auth_mount: Authentication mount point on Vault
+    :param client: HashiCorp Vault client
+    :return: Updated HashiCorp Vault client, and linux username
+    """
+
+    vault_auth_token = get_cached_auth_token(bless_cache)
+    if vault_auth_token is not None:
+        client.token = vault_auth_token
+        username = get_linux_username(bless_cache.get('vault_creds')['username'])
+        return client, get_linux_username(username)
+    else:
+        username, password = get_credentials()
+        auth_params = {
+            'password': password
+        }
+        current_time = datetime.datetime.utcnow()
+        auth_url = '/v1/auth/{0}/login/{1}'.format(auth_mount, username)
+        response = client.auth(auth_url, json=auth_params)
+
+        token = response['auth']['client_token']
+        expiration = current_time + datetime.timedelta(seconds=response['auth']['lease_duration'])
+        username = get_linux_username(response['auth']['metadata']['username'])
+        vault_credentials_cache = {
+            "token": token,
+            "expiration": expiration.strftime('%Y%m%dT%H%M%SZ'),
+            "username": username
+        }
+        bless_cache.set('vault_creds', vault_credentials_cache)
+        bless_cache.save()
+        return client, get_linux_username(username)
+
+
+def vault_bless(nocache, bless_config):
+
+    vault_addr = bless_config.get('VAULT_CONFIG')['vault_addr']
+    auth_mount = bless_config.get('VAULT_CONFIG')['auth_mount']
+    bless_cache = get_bless_cache(nocache, bless_config)
+    bless_lambda_config = bless_config.get_lambda_config()
+
+    user_ip = UserIP(
+        bless_cache=bless_cache,
+        maxcachetime=bless_lambda_config['ipcachelifetime'],
+        ip_urls=bless_config.get_client_config()['ip_urls'],
+        fixed_ip=os.getenv('BLESSFIXEDIP', False))
+
+    # Print feedback?
+    show_feedback = get_stderr_feedback()
+
+    # Create client to connect to HashiCorp Vault
+    client = hvac.Client(url=vault_addr)
+
+    # Identify the SSH key to be used
+    clistring = psutil.Process(os.getppid()).cmdline()
+    identity_file = get_idfile_from_cmdline(
+        clistring,
+        os.getenv('HOME', os.getcwd()) + '/.ssh/blessid'
+    )
+    # Define the certificate to be created
+    cert_file = identity_file + '-cert.pub'
+
+    logging.debug("Using identity file: {}".format(identity_file))
+
+    # Check if we can skip asking for MFA code
+    if nocache is not True:
+        if check_fresh_cert(cert_file, bless_lambda_config, bless_cache, user_ip):
+            logging.debug("Already have fresh cert")
+            sys.exit(0)
+
+    # Print feedback information
+    if show_feedback:
+        sys.stderr.write(
+            "Requesting certificate for your public key"
+            + " (set BLESSQUIET=1 to suppress these messages)\n"
+        )
+
+    # Identify and load the public key to be signed
+    public_key_file = identity_file + '.pub'
+    with open(public_key_file, 'r') as f:
+        public_key = f.read()
+
+    # Only sign public keys in correct format.
+    if public_key[:8] != 'ssh-rsa ':
+        raise Exception(
+            'Refusing to bless {}. Probably not an identity file.'.format(identity_file))
+
+    # Authenticate user with HashiCorp Vault
+    client, linux_username = auth_okta(client, auth_mount, bless_cache)
+
+    payload = {
+        'valid_principals': linux_username,
+        'public_key': public_key,
+        'ttl': bless_config.get('BLESS_CONFIG')['certlifetime'],
+        'ssh_backend_mount': bless_config.get('VAULT_CONFIG')['ssh_backend_mount'],
+        'ssh_backend_role': bless_config.get('VAULT_CONFIG')['ssh_backend_role']
+    }
+
+    vault_ca = VaultCA(client)
+    cert = vault_ca.getCert(payload)
+
+    logging.debug("Got back cert: {}".format(cert))
+
+    # Error handling
+    if cert[:29] != 'ssh-rsa-cert-v01@openssh.com ':
+        error_msg = json.loads(cert)
+        if ('errorType' in error_msg
+            and error_msg['errorType'] == 'KMSAuthValidationError'
+            and nocache is False
+        ):
+            logging.debug("KMSAuth error with cached token, purging cache.")
+            # clear_kmsauth_token_cache(kmsauth_config, bless_cache)
+            raise LambdaInvocationException('KMSAuth validation error')
+
+        if ('errorType' in error_msg and
+                error_msg['errorType'] == 'ClientError'):
+            raise LambdaInvocationException(
+                'The BLESS lambda experienced a client error. Consider trying in a different region.'
+            )
+
+        if ('errorType' in error_msg and
+                error_msg['errorType'] == 'InputValidationError'):
+            raise Exception(
+                'The input to the BLESS lambda is invalid. '
+                'Please update your blessclient by running `make update` '
+                'in the bless folder.')
+
+        raise LambdaInvocationException(
+            'BLESS client did not recieve a valid cert. Instead got: {}'.format(cert))
+
+    # Remove old certificate, replacing with new certificate
+    ssh_agent_remove_bless(identity_file)
+    with open(cert_file, 'w') as cert_file:
+        cert_file.write(cert)
+    ssh_agent_add_bless(identity_file)
+
+    # bless_cache.set('certip', my_ip)
+    # bless_cache.save()
+
+    logging.debug("Successfully issued cert!")
+    if show_feedback:
+        sys.stderr.write("Finished getting certificate.\n")
+
+
 def bless(region, nocache, showgui, hostname, bless_config):
     # Setup loggging
     setup_logging()
@@ -639,13 +826,21 @@ def main():
     config_filename = args.config if args.config else get_default_config_filename()
     with open(config_filename, 'r') as f:
         bless_config.set_config(bless_config.parse_config_file(f))
+    ca_backend = bless_config.get('BLESS_CONFIG')['ca_backend']
     if re.match(bless_config.get_client_config()['domain_regex'], args.host) or args.host == 'BLESS':
         start_region = get_region_from_code(args.region, bless_config)
         success = False
         for region in get_regions(start_region, bless_config):
             try:
-                bless(region, args.nocache, args.gui, args.host, bless_config)
-                success = True
+                if ca_backend.lower() == 'hashicorp-vault':
+                    vault_bless(args.nocache, bless_config)
+                    success = True
+                elif ca_backend.lower() == 'bless':
+                    bless(region, args.nocache, args.gui, args.host, bless_config)
+                    success = True
+                else:
+                    sys.stderr.write('{0} is an invalid CA backend'.format(ca_backend))
+                    sys.exit(1)
                 break
             except (ClientError, LambdaInvocationException, ConnectionError,
                     EndpointConnectionError) as e:
@@ -654,7 +849,7 @@ def main():
         if success:
             sys.exit(0)
         else:
-            sys.stderr.write('Could not connect to BLESS in any configured region.\n')
+            sys.stderr.write('Could not sign SSH public key.\n')
             sys.exit(1)
     else:
         sys.exit(1)

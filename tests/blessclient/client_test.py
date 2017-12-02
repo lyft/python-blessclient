@@ -23,6 +23,7 @@ def bless_config():
             'accountid': '111111111111'
         },
         'CLIENT_CONFIG': {
+            'ip_urls': 'http://api.ipify.org, http://canihazip.com',
             'domain_regex': '(i-.*|.*\\.example\\.com|\\A10\\.0(?:\\.[0-9]{1,3}){2}\\Z)$',
             'cache_dir': '.aws-mfa/session',
             'cache_file': 'bless_cache.json',
@@ -39,6 +40,12 @@ def bless_config():
             'kmskey': 'zxywvuts-0123-4567-8910-abcdefghijkl',
             'awsregion': 'us-east-1',
             'context': {'to': 'bless-production', 'user_type': 'user'}
+        },
+        'VAULT_CONFIG': {
+            'vault_addr': 'https://vault.example.com:1234',
+            'auth_mount': 'okta',
+            'ssh_backend_mount': 'ssh-client-signer',
+            'ssh_backend_role': 'bless'
         }
     })
     return bc
@@ -254,3 +261,94 @@ def null_bless_cache():
     bless_cache = BlessCache(None, None, BlessCache.CACHEMODE_DISABLED)
     bless_cache.cache = {}
     return bless_cache
+
+
+def test_get_linux_username_Email():
+    username = client.get_linux_username("john.doe@example.com")
+    assert username == "john.doe"
+
+
+def test_get_linux_username_EmailWithSpecialChars():
+    username = client.get_linux_username("john.doe+test!#$%&'*+-/=?^_`{|}~abc@example.com")
+    assert username == "john.doe"
+
+
+def test_get_cached_auth_token_isEmpty(null_bless_cache):
+    cache = null_bless_cache
+    returned = client.get_cached_auth_token(cache)
+    assert returned == None
+
+
+def test_get_cached_auth_token_isValid(mocker):
+    cachemock = mocker.MagicMock()
+    cachemock.get.return_value = {
+        "token": "test-token",
+        "expiration": (
+            datetime.datetime.utcnow() +
+            datetime.timedelta(hours=1)
+        ).strftime('%Y%m%dT%H%M%SZ'),
+        "username": "john.doe"
+    }
+    returned = client.get_cached_auth_token(cachemock)
+    assert returned == "test-token"
+
+
+def test_get_cached_auth_token_isExpired(mocker):
+    cachemock = mocker.MagicMock()
+    cachemock.get.return_value = {
+        "token": "test-token",
+        "expiration": (
+            datetime.datetime.utcnow() -
+            datetime.timedelta(hours=1)
+        ).strftime('%Y%m%dT%H%M%SZ'),
+        "username": "john.doe"
+    }
+    returned = client.get_cached_auth_token(cachemock)
+    assert returned == None
+
+
+@pytest.fixture(scope='module')
+def mock_get_credentials():
+    username = "john.doe"
+    password = "password"
+
+    def mockreturn():
+        return username, password
+
+    return mockreturn
+
+
+def test_auth_okta_noCache(mocker, monkeypatch, null_bless_cache, mock_get_credentials):
+
+    clientmock = mocker.MagicMock()
+    clientmock.auth.return_value = {
+        "auth": {
+            "client_token": "test-token",
+            "lease_duration": 500,
+            "metadata": {
+                "username": "john.doe"
+            }
+        }
+    }
+
+    monkeypatch.setattr(client, 'get_credentials', mock_get_credentials)
+    new_client, new_username = client.auth_okta(clientmock, "test_mount", null_bless_cache)
+    assert new_username == "john.doe"
+
+
+def test_auth_okta_Cache(mocker):
+    class MockClient(object):
+        def __init__(self):
+            self.token = "test-token"
+
+    cachemock = mocker.MagicMock()
+    cachemock.get.return_value = {
+        "token": "test-token",
+        "expiration": (
+            datetime.datetime.utcnow() +
+            datetime.timedelta(hours=1)
+        ).strftime('%Y%m%dT%H%M%SZ'),
+        "username": "john.doe"
+    }
+    new_client, new_username = client.auth_okta(MockClient(), "test", cachemock)
+    assert new_username == "john.doe"

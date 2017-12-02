@@ -7,6 +7,7 @@ from blessclient.bless_config import BlessConfig
 
 TEST_CONFIG = """
 [MAIN]
+ca_backend: bless
 region_aliases: iad, SFO
 kms_service_name: bless-production
 bastion_ips: 10.0.0.0/8,192.168.192.1
@@ -39,6 +40,12 @@ kmsauthkey: abcdefgh-0123-4567-8910-abcdefghijkl
 [REGION_IAD]
 awsregion: us-east-1
 kmsauthkey: zxywvuts-0123-4567-8910-abcdefghijkl
+
+[VAULT]
+vault_addr: https://vault.example.com:1234
+auth_mount: okta
+ssh_backend_mount: ssh-client-signer
+ssh_backend_role: bless
 """
 
 @pytest.fixture
@@ -91,6 +98,7 @@ def test_load_config():
         },
         'REGION_ALIAS': {'IAD': 'us-east-1', 'SFO': 'us-west-2'},
         'BLESS_CONFIG': {
+            'ca_backend': 'bless',
             'ipcachelifetime': 60,
             'functionname': 'lyft_bless',
             'functionversion': 'PROD-1-2',
@@ -113,6 +121,12 @@ def test_load_config():
             'update_script': 'autoupdate.sh',
             'user_session_length': 3600,
             'usebless_role_session_length': 3600, # comes from BlessConfig.DEFAULT_CONFIG
+        },
+        'VAULT_CONFIG': {
+            'vault_addr': 'https://vault.example.com:1234',
+            'auth_mount': 'okta',
+            'ssh_backend_mount': 'ssh-client-signer',
+            'ssh_backend_role': 'bless'
         }
     }
 

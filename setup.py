@@ -9,6 +9,7 @@ setup(
         'psutil>=4.3',
         'kmsauth>=0.1.8',
         'six',
+        'hvac'
     ],
     author="Chris Steipp",
     author_email="csteipp@lyft.com",
