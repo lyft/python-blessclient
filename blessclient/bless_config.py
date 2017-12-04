@@ -1,4 +1,5 @@
-import ConfigParser
+from __future__ import absolute_import
+from six.moves.configparser import SafeConfigParser
 
 
 class BlessConfig(object):
@@ -24,8 +25,8 @@ class BlessConfig(object):
         }
 
     def parse_config_file(self, config_file):
-        config = ConfigParser.SafeConfigParser(self.DEFAULT_CONFIG)
-        loaded = config.readfp(config_file)
+        config = SafeConfigParser(self.DEFAULT_CONFIG)
+        config.readfp(config_file)
 
         blessconfig = {
             'CLIENT_CONFIG': {
@@ -34,7 +35,7 @@ class BlessConfig(object):
                 'cache_file': config.get('CLIENT', 'cache_file'),
                 'mfa_cache_dir': config.get('CLIENT', 'mfa_cache_dir'),
                 'mfa_cache_file': config.get('CLIENT', 'mfa_cache_file'),
-                'ip_urls': map(str.strip, config.get('CLIENT', 'ip_urls').split(",")),
+                'ip_urls': [s.strip() for s in config.get('CLIENT', 'ip_urls').split(",")],
                 'update_script': config.get('CLIENT', 'update_script'),
                 'user_session_length': int(config.get('CLIENT', 'user_session_length')),
                 'usebless_role_session_length': int(config.get('CLIENT', 'usebless_role_session_length')),
@@ -59,7 +60,7 @@ class BlessConfig(object):
         }
 
         regions = config.get('MAIN', 'region_aliases').split(",")
-        regions = map(str.strip, regions)
+        regions = [region.strip() for region in regions]
         for region in regions:
             region = region.upper()
             kms_region_key = 'KMSAUTH_CONFIG_{}'.format(region)
@@ -80,7 +81,7 @@ class BlessConfig(object):
         return self.blessconfig
 
     def get_region_alias_from_aws_region(self, aws_region):
-        for alias, region in self.blessconfig['REGION_ALIAS'].iteritems():
+        for alias, region in self.blessconfig['REGION_ALIAS'].items():
             if region == aws_region:
                 return alias
         raise ValueError('Unexpected region: {}'.format(aws_region))

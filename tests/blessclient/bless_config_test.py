@@ -1,4 +1,6 @@
-import StringIO
+from __future__ import unicode_literals
+
+from io import StringIO
 import pytest
 from blessclient.bless_config import BlessConfig
 
@@ -41,7 +43,7 @@ kmsauthkey: zxywvuts-0123-4567-8910-abcdefghijkl
 
 @pytest.fixture
 def bless_config_test():
-    configIO = StringIO.StringIO(TEST_CONFIG)
+    configIO = StringIO(TEST_CONFIG)
     config = BlessConfig()
     config.set_config(config.parse_config_file(configIO))
     return config
@@ -74,7 +76,7 @@ def test_get_config():
 
 def test_load_config():
     config = BlessConfig()
-    configIO = StringIO.StringIO(TEST_CONFIG)
+    configIO = StringIO(TEST_CONFIG)
     conf = config.parse_config_file(configIO)
     assert conf == {
         'KMSAUTH_CONFIG_SFO': {

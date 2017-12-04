@@ -1,8 +1,9 @@
+from __future__ import absolute_import
 import contextlib
 import logging
 import string
 import time
-from urllib2 import urlopen
+from six.moves.urllib_request import urlopen
 
 VALID_IP_CHARACTERS = string.hexdigits + '.:'
 
