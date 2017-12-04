@@ -571,7 +571,22 @@ def vault_bless(nocache, bless_config):
     }
 
     vault_ca = VaultCA(client)
-    cert = vault_ca.getCert(payload)
+    try:
+        cert = vault_ca.getCert(payload)
+    except hvac.exceptions.Forbidden:
+        bless_cache = get_bless_cache(True, bless_config)
+        client, linux_username = auth_okta(client, auth_mount, bless_cache)
+
+        payload = {
+            'valid_principals': linux_username,
+            'public_key': public_key,
+            'ttl': bless_config.get('BLESS_CONFIG')['certlifetime'],
+            'ssh_backend_mount': bless_config.get('VAULT_CONFIG')['ssh_backend_mount'],
+            'ssh_backend_role': bless_config.get('VAULT_CONFIG')['ssh_backend_role']
+        }
+
+        vault_ca = VaultCA(client)
+        cert = vault_ca.getCert(payload)
 
     logging.debug("Got back cert: {}".format(cert))
 
