@@ -207,10 +207,15 @@ def get_mfa_token_gui(message):
 
 def get_mfa_token(showgui, message):
     mfa_token = None
-    if showgui and tokengui:
+    if not showgui:
+        mfa_token = get_mfa_token_cli()
+    elif tokengui:
         mfa_token = get_mfa_token_gui(message)
     else:
-        mfa_token = get_mfa_token_cli()
+        raise RuntimeError(
+            '--gui requested but no tkinter support '
+            '(often the `python-tk` package).'
+        )
     return mfa_token
 
 
