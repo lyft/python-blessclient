@@ -1,7 +1,7 @@
 # Utility functions for working with AWS
 #
 #
-
+from __future__ import absolute_import
 import os
 
 

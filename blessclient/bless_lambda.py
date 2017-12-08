@@ -1,6 +1,7 @@
+from __future__ import absolute_import
 import boto3
 import json
-from lambda_invocation_exception import LambdaInvocationException
+from .lambda_invocation_exception import LambdaInvocationException
 from botocore.client import Config
 from botocore.vendored.requests.exceptions import (ReadTimeout,
                                                    ConnectTimeout,

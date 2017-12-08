@@ -1,5 +1,5 @@
 #!/usr/local/bin/python
-
+from __future__ import absolute_import
 import boto3
 from botocore.exceptions import (ClientError,
                                  ParamValidationError,
@@ -17,18 +17,23 @@ import argparse
 import copy
 import subprocess
 import json
-from random import randint
 
-import awsmfautils
-import tokengui
-from bless_aws import BlessAWS
-from bless_cache import BlessCache
-from user_ip import UserIP
-from bless_lambda import BlessLambda
-from bless_config import BlessConfig
-from lambda_invocation_exception import LambdaInvocationException
+import six
+
+from . import awsmfautils
+from .bless_aws import BlessAWS
+from .bless_cache import BlessCache
+from .user_ip import UserIP
+from .bless_lambda import BlessLambda
+from .bless_config import BlessConfig
+from .lambda_invocation_exception import LambdaInvocationException
 
 import logging
+
+try:
+    from . import tokengui
+except ImportError:
+    tokengui = None
 
 
 DATETIME_STRING_FORMAT = '%Y%m%dT%H%M%SZ'
@@ -87,7 +92,7 @@ def get_regions(region, bless_config):
         List of regions
     """
     regions = []
-    aws_regions = bless_config.get('REGION_ALIAS').values()
+    aws_regions = tuple(bless_config.get('REGION_ALIAS').values())
     try:
         ndx = aws_regions.index(region)
     except ValueError:
@@ -185,7 +190,7 @@ def get_idfile_from_cmdline(cmdline, default):
 
 def get_mfa_token_cli():
     sys.stderr.write('Enter your AWS MFA code: ')
-    mfa_pin = raw_input()
+    mfa_pin = six.moves.input()
     return mfa_pin
 
 
@@ -202,10 +207,15 @@ def get_mfa_token_gui(message):
 
 def get_mfa_token(showgui, message):
     mfa_token = None
-    if showgui:
+    if not showgui:
+        mfa_token = get_mfa_token_cli()
+    elif tokengui:
         mfa_token = get_mfa_token_gui(message)
     else:
-        mfa_token = get_mfa_token_cli()
+        raise RuntimeError(
+            '--gui requested but no tkinter support '
+            '(often the `python-tk` package).'
+        )
     return mfa_token
 
 

@@ -1,8 +1,9 @@
+from __future__ import absolute_import
 import boto3
 import logging
-from itertools import count, ifilter
+from itertools import count
 from botocore.exceptions import DataNotFoundError
-from lambda_invocation_exception import LambdaInvocationException
+from .lambda_invocation_exception import LambdaInvocationException
 from random import randint
 from time import sleep
 

@@ -1,7 +1,3 @@
-"""
-
-"""
-
 from setuptools import setup, find_packages
 
 setup(
@@ -11,7 +7,8 @@ setup(
     install_requires=[
         'boto3>=1.4.0,<2.0.0',
         'psutil>=4.3',
-        'kmsauth>=0.1.8'
+        'kmsauth>=0.1.8',
+        'six',
     ],
     author="Chris Steipp",
     author_email="csteipp@lyft.com",

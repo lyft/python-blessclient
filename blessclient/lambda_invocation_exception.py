@@ -1,3 +1,2 @@
-
 class LambdaInvocationException(Exception):
     pass
