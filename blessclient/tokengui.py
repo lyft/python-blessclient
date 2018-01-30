@@ -35,7 +35,7 @@ class TokenInputGUI(object):
 
         if platform.system() == 'Darwin':
             # Hack to get the GUI dialog focused in OSX
-            os.system('/usr/bin/osascript -e \'tell app "Finder" to set frontmost of process "python" to true\'')
+            os.system('/usr/bin/osascript -e \'tell app "Finder" to set frontmost of process "Python" to true\'')
 
         mainloop()
 
