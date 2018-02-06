@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="blessclient",
-    version="0.2.0",
+    version="0.3.0",
     packages=find_packages(exclude=["test*"]),
     install_requires=[
         'boto3>=1.4.0,<2.0.0',

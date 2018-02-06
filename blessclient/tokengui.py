@@ -32,19 +32,10 @@ class TokenInputGUI(object):
         self.master.attributes('-topmost', True)
         self.master.focus_force()
         self.e1.focus_set()
-        if platform.system() == 'Darwin':
-            try:
-                from Cocoa import (
-                    NSRunningApplication,
-                    NSApplicationActivateIgnoringOtherApps
-                )
 
-                app = NSRunningApplication.runningApplicationWithProcessIdentifier_(
-                    os.getpid()
-                )
-                app.activateWithOptions_(NSApplicationActivateIgnoringOtherApps)
-            except ImportError:
-                pass
+        if platform.system() == 'Darwin':
+            # Hack to get the GUI dialog focused in OSX
+            os.system('/usr/bin/osascript -e \'tell app "Finder" to set frontmost of process "python" to true\'')
 
         mainloop()
 
