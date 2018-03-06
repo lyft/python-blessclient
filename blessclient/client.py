@@ -858,9 +858,12 @@ def main():
                 if ca_backend.lower() == 'hashicorp-vault':
                     vault_bless(args.nocache, bless_config)
                     success = True
-                else:
+                elif ca_backend.lower() == 'bless':
                     bless(region, args.nocache, args.gui, args.host, bless_config)
                     success = True
+                else:
+                    sys.stderr.write('{0} is an invalid CA backend'.format(ca_backend))
+                    sys.exit(1)
                 break
             except (ClientError, LambdaInvocationException, ConnectionError,
                     EndpointConnectionError) as e:
