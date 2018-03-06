@@ -9,6 +9,7 @@ class BlessConfig(object):
         'usebless_role_session_length': '3600',
         'update_sshagent': 'true',
         'remote_user': None,
+        'ca_backend': 'bless',
     }
 
     def __init__(self):
@@ -59,14 +60,16 @@ class BlessConfig(object):
                 'bastion_ips': config.get('MAIN', 'bastion_ips'),
                 'remote_user': config.get('MAIN', 'remote_user')
             },
-            'VAULT_CONFIG': {
+            'REGION_ALIAS': {}
+        }
+
+        if blessconfig['BLESS_CONFIG']['ca_backend'].lower() == 'hashicorp-vault':
+            blessconfig['VAULT_CONFIG'] = {
                 'vault_addr': config.get('VAULT', 'vault_addr'),
                 'auth_mount': config.get('VAULT', 'auth_mount'),
                 'ssh_backend_mount': config.get('VAULT', 'ssh_backend_mount'),
                 'ssh_backend_role': config.get('VAULT', 'ssh_backend_role'),
-            },
-            'REGION_ALIAS': {}
-        }
+            }
 
         regions = config.get('MAIN', 'region_aliases').split(",")
         regions = [region.strip() for region in regions]
