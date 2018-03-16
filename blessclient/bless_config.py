@@ -9,6 +9,7 @@ class BlessConfig(object):
         'usebless_role_session_length': '3600',
         'update_sshagent': 'true',
         'remote_user': None,
+        'ca_backend': 'bless',
     }
 
     def __init__(self):
@@ -43,6 +44,7 @@ class BlessConfig(object):
                 'update_sshagent': config.getboolean('CLIENT', 'update_sshagent'),
             },
             'BLESS_CONFIG': {
+                'ca_backend': config.get('MAIN', 'ca_backend'),
                 'userrole': config.get('LAMBDA', 'user_role'),
                 'accountid': config.get('LAMBDA', 'account_id'),
                 'functionname': config.get('LAMBDA', 'functionname'),
@@ -60,6 +62,14 @@ class BlessConfig(object):
             },
             'REGION_ALIAS': {}
         }
+
+        if blessconfig['BLESS_CONFIG']['ca_backend'].lower() == 'hashicorp-vault':
+            blessconfig['VAULT_CONFIG'] = {
+                'vault_addr': config.get('VAULT', 'vault_addr'),
+                'auth_mount': config.get('VAULT', 'auth_mount'),
+                'ssh_backend_mount': config.get('VAULT', 'ssh_backend_mount'),
+                'ssh_backend_role': config.get('VAULT', 'ssh_backend_role'),
+            }
 
         regions = config.get('MAIN', 'region_aliases').split(",")
         regions = [region.strip() for region in regions]

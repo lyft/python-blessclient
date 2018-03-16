@@ -18,8 +18,12 @@ kms_service_name: bless-production
 # the internal IP of each should be listed here.
 bastion_ips: 10.100.1.230,192.168.200.0/24
 
-# remote_user: The remote username to authorize for SSH within the certificate. 
+# remote_user: The remote username to authorize for SSH within the certificate.
 # Defaults to the AWS user requesting the certificate
+
+# ca_backend: This is the Certificate Authority (CA) backend that will be used in order to
+# provide signed SSH certificates to the user. Can either be 'hashicorp-vault' or 'bless'.
+ca_backend: bless
 
 [CLIENT]
 # domain_regex: A (python) regex that is tested by the blessclient to determine if we need
@@ -107,3 +111,17 @@ kmsauthkey: 12345678-abab-cdcd-efef-123456789011
 [REGION_EAST]
 awsregion: us-east-1
 kmsauthkey: 22345678-abab-cdcd-efef-123456789012
+
+[VAULT]
+# vault_addr: Same as environment variable $VAULT_ADDR when using the CLI
+vault_addr: https://vault.example.com:1234
+
+# auth_mount: Specify the mount point for the desired authentication backend.
+# Tested using Okta, but should work for others requiring only username/password.
+auth_mount: okta
+
+# ssh_backend_mount: SSH Key signing backend mount point to use in HashiCorp Vault
+ssh_backend_mount: ssh-client-signer
+
+# ssh_backend_role: SSH Key signing role to use with the above specified mount point.
+ssh_backend_role: bless
