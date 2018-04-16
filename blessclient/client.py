@@ -391,6 +391,12 @@ def get_username(aws, bless_cache):
                 awsmfautils.unset_token()
                 user = aws.iam_client().get_user()['User']
             except ClientError as e:
+                if e.response.get('Error', {}).get('Code') == 'SignatureDoesNotMatch':
+                    sys.stderr.write(
+                        "Your authentication signature was rejected by AWS; try checking your system " +
+                        "date & timezone settings are correct")
+                    raise
+
                 sys.stderr.write(
                     "Can't get your user information from AWS! Either you don't have your user"
                     " aws credentials set as [default] in ~/.aws/credentials, or you have another"
@@ -869,7 +875,7 @@ def main():
                 if e.response.get('Error', {}).get('Code') == 'InvalidSignatureException':
                     sys.stderr.write(
                         'Your authentication signature was rejected by AWS; try checking your system ' +
-                        'date & timezone settings are correct')
+                        'date & timezone settings are correct\n')
                 logging.info(
                     'Lambda execution error: {}. Trying again in the alternate region.'.format(str(e)))
             except (LambdaInvocationException, ConnectionError, EndpointConnectionError) as e:
