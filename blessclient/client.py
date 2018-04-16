@@ -865,8 +865,14 @@ def main():
                     sys.stderr.write('{0} is an invalid CA backend'.format(ca_backend))
                     sys.exit(1)
                 break
-            except (ClientError, LambdaInvocationException, ConnectionError,
-                    EndpointConnectionError) as e:
+            except ClientError as e:
+                if e.response.get('Error', {}).get('Code') == 'InvalidSignatureException':
+                    sys.stderr.write(
+                        'Your authentication signature was rejected by AWS; try checking your system ' +
+                        'date & timezone settings are correct')
+                logging.info(
+                    'Lambda execution error: {}. Trying again in the alternate region.'.format(str(e)))
+            except (LambdaInvocationException, ConnectionError, EndpointConnectionError) as e:
                 logging.info(
                     'Lambda execution error: {}. Trying again in the alternate region.'.format(str(e)))
         if success:
