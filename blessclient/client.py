@@ -394,13 +394,13 @@ def get_username(aws, bless_cache):
                 if e.response.get('Error', {}).get('Code') == 'SignatureDoesNotMatch':
                     sys.stderr.write(
                         "Your authentication signature was rejected by AWS; try checking your system " +
-                        "date & timezone settings are correct")
+                        "date & timezone settings are correct\n")
                     raise
 
                 sys.stderr.write(
                     "Can't get your user information from AWS! Either you don't have your user"
                     " aws credentials set as [default] in ~/.aws/credentials, or you have another"
-                    " process setting AWS credentials for a service account in your environment.")
+                    " process setting AWS credentials for a service account in your environment.\n")
                 raise
         username = user['UserName']
         bless_cache.set('username', username)
