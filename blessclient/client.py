@@ -95,7 +95,7 @@ def get_regions(region, bless_config):
         List of regions
     """
     regions = []
-    aws_regions = tuple(bless_config.get('REGION_ALIAS').values())
+    aws_regions = tuple(sorted(bless_config.get('REGION_ALIAS').values()))
     try:
         ndx = aws_regions.index(region)
     except ValueError:
