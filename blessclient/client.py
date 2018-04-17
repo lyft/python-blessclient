@@ -20,8 +20,6 @@ import json
 import hvac
 import getpass
 
-from random import randint
-
 import six
 
 from . import awsmfautils
@@ -470,8 +468,8 @@ def get_cached_auth_token(bless_cache):
 
 
 def get_credentials():
-    print "Enter Vault username:"
-    username = raw_input()
+    print("Enter Vault username:")
+    username = six.moves.input()
     password = getpass.getpass(prompt="Password (will be hidden):")
     return username, password
 
@@ -690,7 +688,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
                 role_creds = get_blessrole_credentials(
                     aws.iam_client(), None, bless_config, bless_cache)
                 logging.debug("Default creds used to assume role use-bless")
-            except:
+            except Exception:
                 pass  # TODO
 
         if role_creds is None:
@@ -709,7 +707,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
                     role_creds = get_blessrole_credentials(
                         aws.iam_client(), creds, bless_config, bless_cache)
                     logging.debug("Assumed role use-bless using cached creds")
-            except:
+            except Exception:
                 pass
 
     if role_creds is None:
@@ -810,7 +808,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
     else:
         logging.info(
             "Skipping loading identity into the running ssh-agent "
-            'because this was disabled in the blessclient config.' )
+            'because this was disabled in the blessclient config.')
 
     bless_cache.set('certip', my_ip)
     bless_cache.save()
