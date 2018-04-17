@@ -251,7 +251,7 @@ def get_kmsauth_token(creds, config, username, cache):
             config['awsregion'],
             aws_creds=creds,
             token_lifetime=60
-        ).get_token()
+        ).get_token().decode('US-ASCII')
     except kmsauth.ServiceConnectionError:
         logging.debug("Network failure for kmsauth")
         raise LambdaInvocationException('Connection error getting kmsauth token.')
@@ -352,7 +352,7 @@ def save_cached_creds(token_data, bless_config):
 def ssh_agent_remove_bless(identity_file):
     DEVNULL = open(os.devnull, 'w')
     try:
-        current = subprocess.check_output(['ssh-add', '-l'])
+        current = subprocess.check_output(['ssh-add', '-l']).decode('UTF-8')
         match = re.search(re.escape(identity_file), current)
         if match:
             subprocess.check_call(
@@ -365,7 +365,7 @@ def ssh_agent_remove_bless(identity_file):
 def ssh_agent_add_bless(identity_file):
     DEVNULL = open(os.devnull, 'w')
     subprocess.check_call(['ssh-add', identity_file], stderr=DEVNULL)
-    current = subprocess.check_output(['ssh-add', '-l'])
+    current = subprocess.check_output(['ssh-add', '-l']).decode('UTF-8')
     if not re.search(re.escape(identity_file), current):
         logging.debug("Could not add '{}' to ssh-agent".format(identity_file))
         sys.stderr.write(

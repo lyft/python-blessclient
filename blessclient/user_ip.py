@@ -53,7 +53,7 @@ class UserIP(object):
         try:
             with contextlib.closing(urlopen(url, timeout=2)) as f:
                 if f.getcode() == 200:
-                    content = f.read().strip()[:40]
+                    content = f.read().decode().strip()[:40]
                     for c in content:
                         if c not in VALID_IP_CHARACTERS:
                             raise ValueError("Public IP response included invalid character '{}'.".format(c))
