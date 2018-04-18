@@ -92,7 +92,7 @@ def test_clear_kmsauth_token_cache(null_bless_cache):
 
 def test_get_kmsauth_token(mocker, null_bless_cache):
     tokenmock = mocker.MagicMock()
-    tokenmock.get_token.return_value = 'KMSTOKEN'
+    tokenmock.get_token.return_value = b'KMSTOKEN'
     genermock = mocker.patch('kmsauth.KMSTokenGenerator')
     genermock.return_value = tokenmock
     kmsconfig = {'awsregion': 'us-east-1', 'context': {}, 'kmskey': None}
@@ -150,7 +150,7 @@ def test_uncache_creds():
 
 def test_ssh_agent_remove_bless(mocker):
     outputmock = mocker.patch('subprocess.check_output')
-    outputmock.return_value = '4096 SHA256:hwnh3ccCcxVUo6T6htWvHdkCx/UsNklwy2uQuiBaTLQ /Users/foobar/.ssh/blessid (RSA-CERT)'
+    outputmock.return_value = b'4096 SHA256:hwnh3ccCcxVUo6T6htWvHdkCx/UsNklwy2uQuiBaTLQ /Users/foobar/.ssh/blessid (RSA-CERT)'
     callmock = mocker.patch('subprocess.check_call')
     client.ssh_agent_remove_bless('blessid')
     outputmock.assert_called_once()
@@ -159,7 +159,7 @@ def test_ssh_agent_remove_bless(mocker):
 
 def test_ssh_agent_add_bless(mocker):
     outputmock = mocker.patch('subprocess.check_output')
-    outputmock.return_value = '4096 SHA256:hwnh3ccCcxVUo6T6htWvHdkCx/UsNklwy2uQuiBaTLQ /Users/foobar/.ssh/blessid (RSA-CERT)'
+    outputmock.return_value = b'4096 SHA256:hwnh3ccCcxVUo6T6htWvHdkCx/UsNklwy2uQuiBaTLQ /Users/foobar/.ssh/blessid (RSA-CERT)'
     callmock = mocker.patch('subprocess.check_call')
     client.ssh_agent_add_bless('.ssh/blessid')
     outputmock.assert_called_once()
@@ -168,7 +168,7 @@ def test_ssh_agent_add_bless(mocker):
 
 def test_ssh_agent_add_bless_failed(mocker):
     outputmock = mocker.patch('subprocess.check_output')
-    outputmock.return_value = ''
+    outputmock.return_value = b''
     callmock = mocker.patch('subprocess.check_call')
     logmock = mocker.patch('logging.debug')
     writemock = mocker.patch('sys.stderr.write')

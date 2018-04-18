@@ -40,7 +40,7 @@ class BlessAWS(object):
                 try:
                     self.iam = boto3.client('iam')
                     break
-                except DataNotFoundError as e:
+                except DataNotFoundError:
                     logging.exception('DataNotFoundError when trying to get the iam client.')
                     t = self.retry_policy(attempt)
                     if t is None:

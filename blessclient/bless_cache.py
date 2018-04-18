@@ -44,7 +44,7 @@ class BlessCache(object):
             with open(cache_file_path, 'r') as cache:
                 try:
                     self.cache = json.load(cache)
-                except:
+                except Exception:
                     logging.error("Corrupted cache, using empty cache")
         logging.debug("Cache loaded: {}".format(self.cache))
 

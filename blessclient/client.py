@@ -20,8 +20,6 @@ import json
 import hvac
 import getpass
 
-from random import randint
-
 import six
 
 from . import awsmfautils
@@ -97,7 +95,7 @@ def get_regions(region, bless_config):
         List of regions
     """
     regions = []
-    aws_regions = tuple(bless_config.get('REGION_ALIAS').values())
+    aws_regions = tuple(sorted(bless_config.get('REGION_ALIAS').values()))
     try:
         ndx = aws_regions.index(region)
     except ValueError:
@@ -253,7 +251,7 @@ def get_kmsauth_token(creds, config, username, cache):
             config['awsregion'],
             aws_creds=creds,
             token_lifetime=60
-        ).get_token()
+        ).get_token().decode('US-ASCII')
     except kmsauth.ServiceConnectionError:
         logging.debug("Network failure for kmsauth")
         raise LambdaInvocationException('Connection error getting kmsauth token.')
@@ -354,7 +352,7 @@ def save_cached_creds(token_data, bless_config):
 def ssh_agent_remove_bless(identity_file):
     DEVNULL = open(os.devnull, 'w')
     try:
-        current = subprocess.check_output(['ssh-add', '-l'])
+        current = subprocess.check_output(['ssh-add', '-l']).decode('UTF-8')
         match = re.search(re.escape(identity_file), current)
         if match:
             subprocess.check_call(
@@ -367,7 +365,7 @@ def ssh_agent_remove_bless(identity_file):
 def ssh_agent_add_bless(identity_file):
     DEVNULL = open(os.devnull, 'w')
     subprocess.check_call(['ssh-add', identity_file], stderr=DEVNULL)
-    current = subprocess.check_output(['ssh-add', '-l'])
+    current = subprocess.check_output(['ssh-add', '-l']).decode('UTF-8')
     if not re.search(re.escape(identity_file), current):
         logging.debug("Could not add '{}' to ssh-agent".format(identity_file))
         sys.stderr.write(
@@ -470,8 +468,8 @@ def get_cached_auth_token(bless_cache):
 
 
 def get_credentials():
-    print "Enter Vault username:"
-    username = raw_input()
+    print("Enter Vault username:")
+    username = six.moves.input()
     password = getpass.getpass(prompt="Password (will be hidden):")
     return username, password
 
@@ -690,7 +688,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
                 role_creds = get_blessrole_credentials(
                     aws.iam_client(), None, bless_config, bless_cache)
                 logging.debug("Default creds used to assume role use-bless")
-            except:
+            except Exception:
                 pass  # TODO
 
         if role_creds is None:
@@ -709,7 +707,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
                     role_creds = get_blessrole_credentials(
                         aws.iam_client(), creds, bless_config, bless_cache)
                     logging.debug("Assumed role use-bless using cached creds")
-            except:
+            except Exception:
                 pass
 
     if role_creds is None:
@@ -810,7 +808,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
     else:
         logging.info(
             "Skipping loading identity into the running ssh-agent "
-            'because this was disabled in the blessclient config.' )
+            'because this was disabled in the blessclient config.')
 
     bless_cache.set('certip', my_ip)
     bless_cache.save()
