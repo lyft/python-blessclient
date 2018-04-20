@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import platform
 import os
-from Tkinter import Tk, Label, Entry, Button, ACTIVE, W, mainloop
+from six.moves.tkinter import Tk, Label, Entry, Button, ACTIVE, W, mainloop
 
 
 class TokenInputGUI(object):
