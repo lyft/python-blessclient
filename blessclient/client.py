@@ -521,7 +521,7 @@ def vault_bless(nocache, bless_config):
         bless_cache=bless_cache,
         maxcachetime=bless_lambda_config['ipcachelifetime'],
         ip_urls=bless_config.get_client_config()['ip_urls'],
-        fixed_ip=os.getenv('BLESSFIXEDIP', False))
+        fixed_ip=os.getenv('BLESSFIXEDIP', '0.0.0.0/0'))
 
     # Print feedback?
     show_feedback = get_stderr_feedback()
@@ -666,7 +666,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
         bless_cache=bless_cache,
         maxcachetime=bless_lambda_config['ipcachelifetime'],
         ip_urls=bless_config.get_client_config()['ip_urls'],
-        fixed_ip=os.getenv('BLESSFIXEDIP', False))
+        fixed_ip=os.getenv('BLESSFIXEDIP', '0.0.0.0/0'))
 
     # Check if we can skip asking for MFA code
     if nocache is not True:
