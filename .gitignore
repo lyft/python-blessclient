@@ -1,10 +1,11 @@
 *.pyc
-.coverage
-.cache
 .DS_Store
+/.coverage
+/.pytest_cache
+/.tox
+blessclient.cfg
+blessclient.egg-info/
+blessclient.run
+build/
 coverage.xml
 venv/
-blessclient.run
-blessclient.egg-info/
-build/
-blessclient.cfg

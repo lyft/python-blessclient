@@ -8,7 +8,7 @@ class BlessConfig(object):
         'user_session_length': '64800',
         'usebless_role_session_length': '3600',
         'update_sshagent': 'true',
-        'remote_user': None,
+        'remote_user': '',
         'ca_backend': 'bless',
     }
 
