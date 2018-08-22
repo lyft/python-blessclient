@@ -281,7 +281,7 @@ def setup_logging():
 def get_bless_cache(nocache, bless_config):
     client_config = bless_config.get_client_config()
     cachedir = os.path.join(
-        os.getenv('HOME', os.getcwd()),
+        os.path.expanduser('~'),
         client_config['cache_dir'])
     cachemode = BlessCache.CACHEMODE_RECACHE if nocache else BlessCache.CACHEMODE_ENABLED
     return BlessCache(cachedir, client_config['cache_file'], cachemode)
@@ -653,7 +653,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
     clistring = psutil.Process(os.getppid()).cmdline()
     identity_file = get_idfile_from_cmdline(
         clistring,
-        os.getenv('HOME', os.getcwd()) + '/.ssh/blessid'
+        os.path.expanduser('~/.ssh/blessid'),
     )
     cert_file = identity_file + '-cert.pub'
 
