@@ -559,7 +559,7 @@ def vault_bless(nocache, bless_config):
         public_key = f.read()
 
     # Only sign public keys in correct format.
-    if public_key[:8] != 'ssh-rsa ':
+    if not public_key.split(' ')[0] in ['ssh-rsa', 'ssh-ed25519']:
         raise Exception(
             'Refusing to bless {}. Probably not an identity file.'.format(identity_file))
 
@@ -595,7 +595,7 @@ def vault_bless(nocache, bless_config):
     logging.debug("Got back cert: {}".format(cert))
 
     # Error handling
-    if cert[:29] != 'ssh-rsa-cert-v01@openssh.com ':
+    if not cert.split(' ')[0] in ['ssh-rsa-cert-v01@openssh.com', 'ssh-ed25519-cert-v01@openssh.com']:
         error_msg = json.loads(cert)
         if ('errorType' in error_msg
             and error_msg['errorType'] == 'KMSAuthValidationError'
