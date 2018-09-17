@@ -848,8 +848,7 @@ def main():
     )
     parser.add_argument(
         '--aws-profile',
-        help=(
-            'The AWS credentials profile to be used'),
+        help=('The AWS credentials profile to be used'),
         default='default'
     )
     args = parser.parse_args()
