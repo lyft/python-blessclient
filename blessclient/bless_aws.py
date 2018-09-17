@@ -25,7 +25,7 @@ class BlessAWS(object):
     BOTO_WAIT_TIME_BASE = 2
     BOTO_MAX_RETRIES = 5
 
-    def __init__(self):
+    def __init__(self, profile):
         self.iam = None
         self.sts = None
         self.retry_policy = exponential_backoff_and_jitter_retry(
@@ -33,12 +33,13 @@ class BlessAWS(object):
             base=BlessAWS.BOTO_WAIT_TIME_BASE,
             max_attempts=BlessAWS.BOTO_MAX_RETRIES
         )
+        self.session = boto3.Session(profile_name=profile)
 
     def iam_client(self):
         if not self.iam:
             for attempt in count():
                 try:
-                    self.iam = boto3.client('iam')
+                    self.iam = self.session.client('iam')
                     break
                 except DataNotFoundError:
                     logging.exception('DataNotFoundError when trying to get the iam client.')
@@ -53,5 +54,5 @@ class BlessAWS(object):
 
     def sts_client(self):
         if not self.sts:
-            self.sts = boto3.client('sts')
+            self.sts = self.session.client('sts')
         return self.sts

@@ -635,7 +635,7 @@ def vault_bless(nocache, bless_config):
         sys.stderr.write("Finished getting certificate.\n")
 
 
-def bless(region, nocache, showgui, hostname, bless_config):
+def bless(region, aws_profile, nocache, showgui, hostname, bless_config):
     # Setup loggging
     setup_logging()
     show_feedback = get_stderr_feedback()
@@ -644,7 +644,7 @@ def bless(region, nocache, showgui, hostname, bless_config):
     if os.getenv('MFA_ROLE', '') != '':
         awsmfautils.unset_token()
 
-    aws = BlessAWS()
+    aws = BlessAWS(aws_profile)
     bless_cache = get_bless_cache(nocache, bless_config)
     update_client(bless_cache, bless_config)
 
@@ -846,6 +846,12 @@ def main():
         help=(
             'Config file for blessclient, defaults to blessclient.cfg')
     )
+    parser.add_argument(
+        '--aws-profile',
+        help=(
+            'The AWS credentials profile to be used'),
+        default='default'
+    )
     args = parser.parse_args()
     bless_config = BlessConfig()
     config_filename = args.config if args.config else get_default_config_filename()
@@ -861,7 +867,7 @@ def main():
                     vault_bless(args.nocache, bless_config)
                     success = True
                 elif ca_backend.lower() == 'bless':
-                    bless(region, args.nocache, args.gui, args.host, bless_config)
+                    bless(region, args.aws_profile, args.nocache, args.gui, args.host, bless_config)
                     success = True
                 else:
                     sys.stderr.write('{0} is an invalid CA backend'.format(ca_backend))
