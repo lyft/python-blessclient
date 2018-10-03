@@ -63,9 +63,9 @@ update_script: update_blessclient.sh
 # is 3600 seconds (1 hour). The value must be in the range 900-3600.
 
 # update_sshagent: Specifies whether the identity key should be automatically added to the
-running ssh-agent. If this option is set to 'true', the key and the ssh certificate retrieved
-from lambda are added to the agent. If this option is set to 'false', the key is not added
-to the agent. The default is 'true'.
+# running ssh-agent. If this option is set to 'true', the key and the ssh certificate retrieved
+# from lambda are added to the agent. If this option is set to 'false', the key is not added
+# to the agent. The default is 'true'.
 
 [LAMBDA]
 # user_role: IAM Role that the user will assume, in order to run the BLESS Lambda. This
