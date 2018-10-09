@@ -93,7 +93,8 @@ BASE_EXPECTED_CONF = {
         'update_script': 'autoupdate.sh',
         'user_session_length': 3600,
         'usebless_role_session_length': 3600, # comes from BlessConfig.DEFAULT_CONFIG
-        'update_sshagent': False
+        'update_sshagent': False,
+        'use_env_creds': False # comes from BlessConfig.DEFAULT_CONFIG
     }
 }
 

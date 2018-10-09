@@ -10,6 +10,7 @@ class BlessConfig(object):
         'update_sshagent': 'true',
         'remote_user': '',
         'ca_backend': 'bless',
+        'use_env_creds': 'false',
     }
 
     def __init__(self):
@@ -42,6 +43,7 @@ class BlessConfig(object):
                 'user_session_length': int(config.get('CLIENT', 'user_session_length')),
                 'usebless_role_session_length': int(config.get('CLIENT', 'usebless_role_session_length')),
                 'update_sshagent': config.getboolean('CLIENT', 'update_sshagent'),
+                'use_env_creds': config.getboolean('CLIENT', 'use_env_creds'),
             },
             'BLESS_CONFIG': {
                 'ca_backend': config.get('MAIN', 'ca_backend'),
