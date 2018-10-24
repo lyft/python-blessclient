@@ -1,3 +1,5 @@
+> This module has not been released.
+
 # Blessclient
 A client for interacting with [BLESS](https://github.com/lyft/bless) services from users' laptops. Blessclient optimizes to ensure that users can always use ssh as they normally would with a fixed key, with minimal delay.
 
