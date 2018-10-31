@@ -77,6 +77,8 @@ def update_client(bless_cache, bless_config):
 
 
 def get_region_from_code(region_code, bless_config):
+    if region_code == None:
+        region_code = tuple(sorted(bless_config.get('REGION_ALIAS')))[0]
     alias_code = region_code.upper()
     aliases = bless_config.get('REGION_ALIAS')
     if alias_code in aliases:
@@ -847,8 +849,8 @@ def main():
     )
     parser.add_argument(
         '--region',
-        help=('Region to which you want the lambda to connect to. Options are iad or sfo. Defaults to iad'),
-        default='iad'
+        help=('Region to which you want the lambda to connect to. Defaults to first region in config'),
+        default=None
     )
     parser.add_argument(
         '--nocache',
