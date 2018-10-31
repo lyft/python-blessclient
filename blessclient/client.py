@@ -77,7 +77,7 @@ def update_client(bless_cache, bless_config):
 
 
 def get_region_from_code(region_code, bless_config):
-    if region_code == None:
+    if region_code is None:
         region_code = tuple(sorted(bless_config.get('REGION_ALIAS')))[0]
     alias_code = region_code.upper()
     aliases = bless_config.get('REGION_ALIAS')
