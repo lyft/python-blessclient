@@ -314,25 +314,6 @@ def load_cached_creds(bless_config):
         dict of AWS credentials, or {} if no current credentials are found
     """
     client_config = bless_config.get_client_config()
-
-    if client_config['use_env_creds']:
-        cached_data = {}
-        env_vars = {
-            'AWS_SECRET_ACCESS_KEY': 'SecretAccessKey',
-            'AWS_ACCESS_KEY_ID': 'AccessKeyId',
-            'AWS_EXPIRATION_S': 'Expiration',
-            'AWS_SESSION_TOKEN': 'SessionToken'
-        }
-        if all(x in os.environ for x in env_vars):
-            for env_var in env_vars.keys():
-                cached_data[env_vars[env_var]] = os.environ[env_var]
-                if env_var == 'AWS_EXPIRATION_S':
-                    expiration = datetime.datetime.fromtimestamp(int(os.environ[env_var]))
-                    cached_data[env_vars[env_var]] = expiration.strftime(DATETIME_STRING_FORMAT)
-                    if expiration < datetime.datetime.now():
-                        return {}
-            return cached_data
-
     cachedir = os.path.join(
         os.getenv(
             'HOME',
@@ -690,28 +671,67 @@ def bless(region, nocache, showgui, hostname, bless_config):
         ip_urls=bless_config.get_client_config()['ip_urls'],
         fixed_ip=os.getenv('BLESSFIXEDIP', False))
 
-    # Check if we can skip asking for MFA code
-    if nocache is not True:
-        if check_fresh_cert(cert_file, bless_lambda_config, bless_cache, userIP):
-            logging.debug("Already have fresh cert")
-            sys.exit(0)
+    client_config = bless_config.get_client_config()
+    if client_config['use_env_creds']:
+        if nocache is not True:
+            if check_fresh_cert(cert_file, bless_lambda_config, bless_cache, userIP):
+                logging.debug("Already have fresh cert")
+                sys.exit(0)
 
-        if ('AWS_SECURITY_TOKEN' in os.environ):
-            try:
-                # Try doing this with our env's creds
-                kmsauth_token = get_kmsauth_token(
-                    None,
-                    kmsauth_config,
-                    username,
-                    cache=bless_cache
-                )
-                logging.debug(
-                    "Got kmsauth token by default creds: {}".format(kmsauth_token))
-                role_creds = get_blessrole_credentials(
-                    aws.iam_client(), None, bless_config, bless_cache)
-                logging.debug("Default creds used to assume role use-bless")
-            except Exception:
-                pass  # TODO
+        env_vars = {
+            'AWS_SECRET_ACCESS_KEY': 'SecretAccessKey',
+            'AWS_ACCESS_KEY_ID': 'AccessKeyId',
+            'AWS_EXPIRATION_S': 'Expiration',
+            'AWS_SESSION_TOKEN': 'SessionToken'
+        }
+        if all(x in os.environ for x in env_vars):
+            role_creds = {}
+            for env_var in env_vars.keys():
+                role_creds[env_vars[env_var]] = os.environ[env_var]
+                if env_var == 'AWS_EXPIRATION_S':
+                    expiration = datetime.datetime.fromtimestamp(int(os.environ[env_var]))
+                    role_creds[env_vars[env_var]] = expiration.strftime(DATETIME_STRING_FORMAT)
+            if expiration < datetime.datetime.now():
+                role_creds = None
+        try:
+            # Try doing this with our env's creds
+            kmsauth_token = get_kmsauth_token(
+                None,
+                kmsauth_config,
+                username,
+                cache=bless_cache
+            )
+            logging.debug(
+                "Got kmsauth token by env creds: {}".format(kmsauth_token))
+            role_creds = get_blessrole_credentials(
+                aws.iam_client(), None, bless_config, bless_cache)
+            logging.debug("Env creds used to assume role use-bless")
+        except Exception:
+            pass  # TODO
+
+    if role_creds is None:
+        # Check if we can skip asking for MFA code
+        if nocache is not True:
+            if check_fresh_cert(cert_file, bless_lambda_config, bless_cache, userIP):
+                logging.debug("Already have fresh cert")
+                sys.exit(0)
+
+            if ('AWS_SECURITY_TOKEN' in os.environ):
+                try:
+                    # Try doing this with our env's creds
+                    kmsauth_token = get_kmsauth_token(
+                        None,
+                        kmsauth_config,
+                        username,
+                        cache=bless_cache
+                    )
+                    logging.debug(
+                        "Got kmsauth token by default creds: {}".format(kmsauth_token))
+                    role_creds = get_blessrole_credentials(
+                        aws.iam_client(), None, bless_config, bless_cache)
+                    logging.debug("Default creds used to assume role use-bless")
+                except Exception:
+                    pass  # TODO
 
         if role_creds is None:
             try:
