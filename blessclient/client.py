@@ -19,6 +19,7 @@ import subprocess
 import json
 import hvac
 import getpass
+import socket
 
 import six
 
@@ -27,6 +28,7 @@ from .bless_aws import BlessAWS
 from .bless_cache import BlessCache
 from .user_ip import UserIP
 from .bless_lambda import BlessLambda
+from .housekeeper_lambda import HousekeeperLambda
 from .bless_config import BlessConfig
 from .vault_ca import VaultCA
 from .lambda_invocation_exception import LambdaInvocationException
@@ -76,6 +78,29 @@ def update_client(bless_cache, bless_config):
         logging.info('No update script is configured, client will not autoupdate.')
 
 
+def is_valid_ipv4_address(address):
+    try:
+        socket.inet_pton(socket.AF_INET, address)
+    except AttributeError:  # no inet_pton here, sorry
+        try:
+            socket.inet_aton(address)
+        except socket.error:
+            return False
+        return address.count('.') == 3
+    except socket.error:  # not a valid address
+        return False
+
+    return True
+
+
+def is_valid_ipv6_address(address):
+    try:
+        socket.inet_pton(socket.AF_INET6, address)
+    except socket.error:  # not a valid address
+        return False
+    return True
+
+
 def get_region_from_code(region_code, bless_config):
     if region_code is None:
         region_code = tuple(sorted(bless_config.get('REGION_ALIAS')))[0]
@@ -118,6 +143,62 @@ def get_kmsauth_config(region, bless_config):
     """
     alias_code = bless_config.get_region_alias_from_aws_region(region)
     return bless_config.get('KMSAUTH_CONFIG_{}'.format(alias_code))
+
+
+def get_housekeeper_config(region, bless_config):
+    """ Return the housekeeper config values for a given AWS region
+    Args:
+        region (str): the AWS region code (e.g., 'us-east-1')
+        bless_config (BlessConfig): config from BlessConfig
+    Retruns:
+        A dict of configuation values
+    """
+    try:
+        alias_code = bless_config.get_region_alias_from_aws_region(region)
+        return bless_config.get('HOUSEKEEPER_CONFIG_{}'.format(alias_code))
+    except Exception as e:
+        return None
+
+
+def get_housekeeperrole_credentials(iam_client, creds, housekeeper_config, blessconfig):
+    """
+    Args:
+        iam_client: boto3 iam client
+        creds: User credentials with rights to assume the use-bless role, or None for boto to
+            use its default search
+        blessconfig: BlessConfig object
+        bless_cache: BlessCache object
+    """
+    if creds is not None:
+        mfa_sts_client = boto3.client(
+            'sts',
+            aws_access_key_id=creds['AccessKeyId'],
+            aws_secret_access_key=creds['SecretAccessKey'],
+            aws_session_token=creds['SessionToken']
+        )
+    else:
+        mfa_sts_client = boto3.client('sts')
+
+    user = iam_client.get_user()['User']
+    user_arn = user['Arn']
+
+    role_arn = awsmfautils.get_role_arn(
+        user_arn,
+        housekeeper_config['userrole'],
+        housekeeper_config['accountid']
+    )
+
+    logging.debug("Role Arn: {}".format(role_arn))
+
+    role_creds = mfa_sts_client.assume_role(
+        RoleArn=role_arn,
+        RoleSessionName='mfaassume',
+        DurationSeconds=blessconfig.get_client_config()['usebless_role_session_length'],
+    )['Credentials']
+
+    logging.debug("Role Credentials: {}".format(role_creds))
+
+    return role_creds
 
 
 def get_blessrole_credentials(iam_client, creds, blessconfig, bless_cache):
@@ -410,14 +491,15 @@ def get_username(aws, bless_cache):
     return username
 
 
-def check_fresh_cert(cert_file, blessconfig, bless_cache, userIP):
+def check_fresh_cert(cert_file, blessconfig, bless_cache, userIP, ip_list=None):
     if os.path.isfile(cert_file):
         certlife = time.time() - os.path.getmtime(cert_file)
         if certlife < float(blessconfig['certlifetime'] - 15):
             if (certlife < float(blessconfig['ipcachelifetime'])
                 or bless_cache.get('certip') == userIP.getIP()
             ):
-                return True
+                if ip_list is None or ip_list == bless_cache.get('bastion_ips'):
+                    return True
     return False
 
 
@@ -650,6 +732,14 @@ def bless(region, nocache, showgui, hostname, bless_config):
     aws = BlessAWS()
     bless_cache = get_bless_cache(nocache, bless_config)
     update_client(bless_cache, bless_config)
+    bless_lambda_config = bless_config.get_lambda_config()
+
+    userIP = UserIP(
+        bless_cache=bless_cache,
+        maxcachetime=bless_lambda_config['ipcachelifetime'],
+        ip_urls=bless_config.get_client_config()['ip_urls'],
+        fixed_ip=os.getenv('BLESSFIXEDIP', False))
+    my_ip = userIP.getIP()
 
     username = get_username(aws, bless_cache)
 
@@ -662,22 +752,11 @@ def bless(region, nocache, showgui, hostname, bless_config):
 
     logging.debug("Using identity file: {}".format(identity_file))
 
-    bless_lambda_config = bless_config.get_lambda_config()
     role_creds = None
     kmsauth_config = get_kmsauth_config(region, bless_config)
-    userIP = UserIP(
-        bless_cache=bless_cache,
-        maxcachetime=bless_lambda_config['ipcachelifetime'],
-        ip_urls=bless_config.get_client_config()['ip_urls'],
-        fixed_ip=os.getenv('BLESSFIXEDIP', False))
 
     client_config = bless_config.get_client_config()
     if client_config['use_env_creds']:
-        if nocache is not True:
-            if check_fresh_cert(cert_file, bless_lambda_config, bless_cache, userIP):
-                logging.debug("Already have fresh cert")
-                sys.exit(0)
-
         env_vars = {
             'AWS_SECRET_ACCESS_KEY': 'SecretAccessKey',
             'AWS_ACCESS_KEY_ID': 'AccessKeyId',
@@ -685,14 +764,14 @@ def bless(region, nocache, showgui, hostname, bless_config):
             'AWS_SESSION_TOKEN': 'SessionToken'
         }
         if all(x in os.environ for x in env_vars):
-            role_creds = {}
+            creds = {}
             for env_var in env_vars.keys():
-                role_creds[env_vars[env_var]] = os.environ[env_var]
+                creds[env_vars[env_var]] = os.environ[env_var]
                 if env_var == 'AWS_EXPIRATION_S':
                     expiration = datetime.datetime.fromtimestamp(int(os.environ[env_var]))
-                    role_creds[env_vars[env_var]] = expiration.strftime(DATETIME_STRING_FORMAT)
+                    creds[env_vars[env_var]] = expiration.strftime(DATETIME_STRING_FORMAT)
             if expiration < datetime.datetime.now():
-                role_creds = None
+                creds = None
         try:
             # Try doing this with our env's creds
             kmsauth_token = get_kmsauth_token(
@@ -704,35 +783,12 @@ def bless(region, nocache, showgui, hostname, bless_config):
             logging.debug(
                 "Got kmsauth token by env creds: {}".format(kmsauth_token))
             role_creds = get_blessrole_credentials(
-                aws.iam_client(), None, bless_config, bless_cache)
+                aws.iam_client(), creds, bless_config, bless_cache)
             logging.debug("Env creds used to assume role use-bless")
-        except Exception:
-            pass  # TODO
+        except Exception as e:
+            raise e
 
-    if role_creds is None:
-        # Check if we can skip asking for MFA code
-        if nocache is not True:
-            if check_fresh_cert(cert_file, bless_lambda_config, bless_cache, userIP):
-                logging.debug("Already have fresh cert")
-                sys.exit(0)
-
-            if ('AWS_SECURITY_TOKEN' in os.environ):
-                try:
-                    # Try doing this with our env's creds
-                    kmsauth_token = get_kmsauth_token(
-                        None,
-                        kmsauth_config,
-                        username,
-                        cache=bless_cache
-                    )
-                    logging.debug(
-                        "Got kmsauth token by default creds: {}".format(kmsauth_token))
-                    role_creds = get_blessrole_credentials(
-                        aws.iam_client(), None, bless_config, bless_cache)
-                    logging.debug("Default creds used to assume role use-bless")
-                except Exception:
-                    pass  # TODO
-
+    if nocache is not True:
         if role_creds is None:
             try:
                 # Try using creds stored by mfa.sh
@@ -780,6 +836,49 @@ def bless(region, nocache, showgui, hostname, bless_config):
         role_creds = get_blessrole_credentials(
             aws.iam_client(), creds, bless_config, bless_cache)
 
+    if get_housekeeper_config(region, bless_config) is None:
+        if 'bastion_ips' in bless_config.get_aws_config():
+            ip_list = "{},{}".format(my_ip, bless_config.get_aws_config()['bastion_ips'])
+        else:
+            ip_list = '{}'.format(my_ip)
+    else:
+        try:
+            role_creds_hk = get_housekeeperrole_credentials(
+                aws.iam_client(), creds, get_housekeeper_config(region, bless_config), bless_config)
+            housekeeper = HousekeeperLambda(get_housekeeper_config(region, bless_config), role_creds_hk, region)
+            if is_valid_ipv4_address(hostname):
+                ip = hostname
+            else:
+                ip = socket.gethostbyname(hostname)
+            if ip is not None:
+                private_ip = housekeeper.getPrivateIpFromPublic(ip)
+                if private_ip is not None:
+                    ip_list = "{},{}".format(my_ip, private_ip)
+                else:
+                    if 'bastion_ips' in bless_config.get_aws_config():
+                        ip_list = "{},{}".format(my_ip, bless_config.get_aws_config()['bastion_ips'])
+                    else:
+                        ip_list = '{}'.format(my_ip)
+            else:
+                if 'bastion_ips' in bless_config.get_aws_config():
+                    ip_list = "{},{}".format(my_ip, bless_config.get_aws_config()['bastion_ips'])
+                else:
+                    ip_list = '{}'.format(my_ip)
+        except Exception as e:
+            if 'bastion_ips' in bless_config.get_aws_config():
+                ip_list = "{},{}".format(my_ip, bless_config.get_aws_config()['bastion_ips'])
+            else:
+                ip_list = '{}'.format(my_ip)
+            raise e
+
+    if nocache is not True:
+        if check_fresh_cert(cert_file, bless_lambda_config, bless_cache, userIP, ip_list):
+            logging.debug("Already have fresh cert")
+            sys.exit(0)
+
+    bless_cache.set('bastion_ips', ip_list)
+    bless_cache.save()
+
     bless_lambda = BlessLambda(bless_lambda_config, role_creds, kmsauth_token, region)
 
     # Do bless
@@ -796,8 +895,6 @@ def bless(region, nocache, showgui, hostname, bless_config):
         raise Exception(
             'Refusing to bless {}. Probably not an identity file.'.format(identity_file))
 
-    my_ip = userIP.getIP()
-    ip_list = "{},{}".format(my_ip, bless_config.get_aws_config()['bastion_ips'])
     remote_user = bless_config.get_aws_config()['remote_user'] or username
     payload = {
         'bastion_user': username,
@@ -863,9 +960,8 @@ def main():
         description=('A client for getting BLESS\'ed ssh certificates.')
     )
     parser.add_argument(
-        '--host',
-        help=('Host name to which we are connecting, abort if this is not a recognized host'),
-        default='BLESS'
+        'host',
+        help=('Host name to which we are connecting')
     )
     parser.add_argument(
         '--region',

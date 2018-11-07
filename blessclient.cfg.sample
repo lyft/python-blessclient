@@ -106,15 +106,21 @@ ipcachelifetime: 120
 timeout_connect: 5
 timeout_read: 10
 
+#[HOUSEKEEPER]
+#user_role: housekeeper_role
+#account_id: housekeeper_account_id
+
 # REGION sections (REGION_<ALIAS>, for each region_aliases defined). Must have the AWS
 # region specified, as well as the kmsauth key in that region.
 [REGION_WEST]
 awsregion: us-west-2
 kmsauthkey: 12345678-abab-cdcd-efef-123456789011
+#housekeeper_url:
 
 [REGION_EAST]
 awsregion: us-east-1
 kmsauthkey: 22345678-abab-cdcd-efef-123456789012
+#housekeeper_url:
 
 [VAULT]
 # vault_addr: Same as environment variable $VAULT_ADDR when using the CLI

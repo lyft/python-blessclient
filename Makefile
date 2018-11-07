@@ -6,6 +6,7 @@ SHELL := /bin/bash
 
 .PHONY: client
 client:
+	rm -rf ./blessclient.run
 	virtualenv venv
 	venv/bin/pip install -e .
 	ln -s venv/bin/blessclient ./blessclient.run

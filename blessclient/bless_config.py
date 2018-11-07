@@ -27,6 +27,15 @@ class BlessConfig(object):
             'awsregion': config.get(section, 'awsregion')
         }
 
+    def _get_region_housekeeper_config(self, region, config):
+        regionsection = 'REGION_{}'.format(region)
+        return {
+            'userrole': config.get('HOUSEKEEPER', 'user_role'),
+            'accountid': config.get('HOUSEKEEPER', 'account_id'),
+            'url': config.get(regionsection, 'housekeeper_url'),
+            'awsregion': config.get(regionsection, 'awsregion')
+        }
+
     def parse_config_file(self, config_file):
         config = SafeConfigParser(self.DEFAULT_CONFIG)
         config.readfp(config_file)
@@ -59,12 +68,13 @@ class BlessConfig(object):
                 }
             },
             'AWS_CONFIG': {
-                'bastion_ips': config.get('MAIN', 'bastion_ips'),
                 'remote_user': config.get('MAIN', 'remote_user')
             },
             'REGION_ALIAS': {}
         }
 
+        if config.has_option('MAIN', 'bastion_ips'):
+            blessconfig['AWS_CONFIG']['bastion_ips'] = config.get('MAIN', 'bastion_ips')
         if blessconfig['BLESS_CONFIG']['ca_backend'].lower() == 'hashicorp-vault':
             blessconfig['VAULT_CONFIG'] = {
                 'vault_addr': config.get('VAULT', 'vault_addr'),
@@ -80,6 +90,12 @@ class BlessConfig(object):
             kms_region_key = 'KMSAUTH_CONFIG_{}'.format(region)
             blessconfig.update({kms_region_key: self._get_region_kms_config(region, config)})
             blessconfig['REGION_ALIAS'].update({region: blessconfig[kms_region_key]['awsregion']})
+
+            if config.has_section('HOUSEKEEPER'):
+                hk_region_key = 'HOUSEKEEPER_CONFIG_{}'.format(region)
+                blessconfig.update({hk_region_key: self._get_region_housekeeper_config(region, config)})
+                blessconfig['REGION_ALIAS'].update({region: blessconfig[hk_region_key]['awsregion']})
+
         return blessconfig
 
     def get(self, section):
