@@ -786,7 +786,8 @@ def bless(region, nocache, showgui, hostname, bless_config):
                 aws.iam_client(), creds, bless_config, bless_cache)
             logging.debug("Env creds used to assume role use-bless")
         except Exception as e:
-            raise e
+            logging.debug('Failed to use env creds: {}'.format(e))
+            pass
 
     if nocache is not True:
         if role_creds is None:
