@@ -450,7 +450,14 @@ def ssh_agent_add_bless(identity_file):
     DEVNULL = open(os.devnull, 'w')
     subprocess.check_call(['ssh-add', identity_file], stderr=DEVNULL)
     current = subprocess.check_output(['ssh-add', '-l']).decode('UTF-8')
-    if not re.search(re.escape(identity_file), current):
+    fingerprint = re.search('SHA256:([^\s]+)',subprocess.check_output(['ssh-keygen', '-lf', identity_file]).decode('UTF-8'))
+    if fingerprint is None:
+        logging.debug("Could not add '{}' to ssh-agent".format(identity_file))
+        sys.stderr.write(
+            "Couldn't add identity to ssh-agent\n")
+        return
+    logging.debug("Fingerprint of cert added: {}".format(fingerprint.group(0)))
+    if not re.search(re.escape(fingerprint.group(0)), current):
         logging.debug("Could not add '{}' to ssh-agent".format(identity_file))
         sys.stderr.write(
             "Couldn't add identity to ssh-agent")
