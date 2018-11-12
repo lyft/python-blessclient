@@ -15,6 +15,9 @@ Blessclient is a python client that should run without modification on OSX 10.10
 ## Quick Installation
 ```
 pip3 install git+https://github.com/basefarm/python-blessclient.git --user
+
+# Or when using a branch (example housekeeper)
+pip3 install git+https://github.com/basefarm/python-blessclient.git@housekeeper --user --upgrade
 ```
 Add config file to `$HOME/.aws/blessclient.cfg` Example included at blessclient.cfg.sample
 
