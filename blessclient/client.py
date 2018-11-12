@@ -512,11 +512,10 @@ def check_fresh_cert(cert_file, blessconfig, bless_cache, userIP, ip_list=None):
 
 def get_default_config_filename():
     """ Get the full path to the default config file
-    Returns (str): Full path to file blessclient.cfg in repo root
+    Returns (str): Full path to file blessclient.cfg in home aws folder
     """
-    file_dir = os.path.dirname(os.path.realpath(__file__))
-    return os.path.normpath(os.path.join(file_dir, os.pardir, 'blessclient.cfg'))
-
+    home_dir = os.path.expanduser("~")
+    return os.path.normpath(os.path.join(home_dir,'.aws','blessclient.cfg'))
 
 def update_config_from_env(bless_config):
     """ Override config values from environment variables

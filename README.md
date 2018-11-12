@@ -12,6 +12,12 @@ Blessclient is a python client that should run without modification on OSX 10.10
 
   * It's required that your AWS user names match the ssh username used by your users. The ssh certificate issued by the BLESS Lambda specifies the username allowed the login with the certificate, and we use the user's AWS username for this. The BLESS Lambda and kmsauth could be modified to change this requirement, but we don't support that at this time.
 
+## Quick Installation
+```
+pip3 install git+https://github.com/basefarm/python-blessclient.git --user
+```
+Add config file to `$HOME/.aws/blessclient.cfg` Example included at blessclient.cfg.sample
+
 ## Installation
 To get to the point where you can login to a server using your bless'ed SSH certificate, you will need:
   * [Netflix's BLESS](https://github.com/Netflix/bless), using [commit 8df7f6d](https://github.com/Netflix/bless/tree/8df7f6d181c24d7b64e7c1827432920d6bb71249) or later, which signs your users' public keys, and is trusted by your SSH hosts.
