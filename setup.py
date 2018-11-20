@@ -19,7 +19,8 @@ setup(
     url="https://github.com/lyft/python-blessclient",
     entry_points={
         "console_scripts": [
-            "blessclient = blessclient.client:main"
+            "blessclient = blessclient.client:main",
+            "bssh = blesswrapper.sshclient:main"
         ],
     },
 )
