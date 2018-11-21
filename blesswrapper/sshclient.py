@@ -13,6 +13,7 @@ from blessclient.bless_config import BlessConfig
 def main():
     parser = argparse.ArgumentParser(description='Bless SSH')
     parser.add_argument('host')
+    parser.add_argument('cmd',nargs='*')
     parser.add_argument('--nocache', action='store_true')
     parser.add_argument('-4', action='store_true', help='Forces ssh to use IPv4 addresses only.')
     parser.add_argument('-6', action='store_true', help='Forces ssh to use IPv6 addresses only.')
@@ -82,5 +83,9 @@ def main():
     elif username != None:
         ssh_options.append('-l')
         ssh_options.append(username)
+
+    if len(args.cmd) >= 1:
+        for cmd in args.cmd:
+            ssh_options.append(cmd)
 
     subprocess.run(['ssh', hostname]+ssh_options)
