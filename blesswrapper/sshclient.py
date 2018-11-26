@@ -76,7 +76,7 @@ def main():
         with open(config_filename, 'r') as f:
             bless_config.set_config(bless_config.parse_config_file(f))
     except FileNotFoundError as e:
-        print(e)
+        sys.stderr.write('{}\n'.format(e))
         sys.exit(1)
 
     start_region = get_region_from_code(None, bless_config)
