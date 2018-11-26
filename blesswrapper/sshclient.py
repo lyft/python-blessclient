@@ -15,10 +15,12 @@ def main():
     parser.add_argument('host')
     parser.add_argument('cmd',nargs='*')
     parser.add_argument('--nocache', action='store_true')
+    parser.add_argument('--config', default=None, help='Config file for blessclient. Default to ~/.aws/blessclient.cfg')
     parser.add_argument('-4', action='store_true', help='Forces ssh to use IPv4 addresses only.')
     parser.add_argument('-6', action='store_true', help='Forces ssh to use IPv6 addresses only.')
     parser.add_argument('-a', action='store_true', help='Disable forwarding of the authentication agent connection.')
     parser.add_argument('-X', action='store_true', help='Enables X11 forwarding.')
+    parser.add_argument('-Y', action='store_true', help='Enables trusted X11 forwarding.')
     parser.add_argument('-l', default=None, help='Specifies the user to log in as on the remote machine. Defaults to IAM user')
     parser.add_argument('-p', default=22, help='Port to connect to on the remote host. Default 22')
     args = parser.parse_args()
@@ -39,6 +41,8 @@ def main():
         ssh_options.append('-A')
     if args.X:
         ssh_options.append('-X')
+    if args.Y:
+        ssh_options.append('-Y')
 
     hostname = None
     username = None
@@ -64,9 +68,16 @@ def main():
 
     blessclient_output = []
     bless_config = BlessConfig()
-    config_filename = get_default_config_filename()
-    with open(config_filename, 'r') as f:
-        bless_config.set_config(bless_config.parse_config_file(f))
+    if args.config is not None:
+        config_filename = args.config
+    else:
+        config_filename = get_default_config_filename()
+    try:
+        with open(config_filename, 'r') as f:
+            bless_config.set_config(bless_config.parse_config_file(f))
+    except FileNotFoundError as e:
+        print(e)
+        sys.exit(1)
 
     start_region = get_region_from_code(None, bless_config)
     for region in get_regions(start_region, bless_config):
