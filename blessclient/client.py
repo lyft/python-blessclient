@@ -813,6 +813,7 @@ def bless(region, nocache, showgui, hostname, bless_config, username = None):
         sys.exit(1)
 
     if get_housekeeper_config(region, bless_config) is None:
+        ip = None
         if 'bastion_ips' in bless_config.get_aws_config():
             ip_list = "{},{}".format(my_ip, bless_config.get_aws_config()['bastion_ips'])
         else:
