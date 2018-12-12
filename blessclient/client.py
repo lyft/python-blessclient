@@ -199,7 +199,7 @@ def get_mfa_token_cli():
 
 def get_mfa_token_gui(message):
     sys.stderr.write(
-        "Enter your AWS MFA token in the gui dialog. Alternatively, run mfa.sh first.\n")
+        "Enter your AWS MFA token in the gui dialog.\n")
     tig = tokengui.TokenInputGUI()
     if message == 'BLESS':
         message = None
