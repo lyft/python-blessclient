@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import platform
 import os
+import subprocess
 from six.moves.tkinter import Tk, Label, Entry, Button, ACTIVE, W, mainloop
 
 
@@ -35,7 +36,10 @@ class TokenInputGUI(object):
 
         if platform.system() == 'Darwin':
             # Hack to get the GUI dialog focused in OSX
-            os.system('/usr/bin/osascript -e \'tell app "Finder" to set frontmost of process "python" to true\'')
+            # https://stackoverflow.com/questions/1892339/how-to-make-a-tkinter-window-jump-to-the-front/37235492#37235492
+            tmpl = 'tell application "System Events" to set frontmost of every process whose unix id is {} to true'
+            script = tmpl.format(os.getpid())
+            subprocess.check_call(['/usr/bin/osascript', '-e', script])
 
         mainloop()
 
