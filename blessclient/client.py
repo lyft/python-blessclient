@@ -348,12 +348,14 @@ def save_cached_creds(token_data, bless_config):
     with open(cache_file_path, 'w') as cache:
         json.dump(_token_data, cache)
 
-
 def ssh_agent_remove_bless(identity_file):
     DEVNULL = open(os.devnull, 'w')
+    identity_fp = subprocess.check_output(['ssh-keygen','-lf',identity_file]).decode('UTF-8') #Get SHA256 fingerprint of the identity file
+
     try:
         current = subprocess.check_output(['ssh-add', '-l']).decode('UTF-8')
-        match = re.search(re.escape(identity_file), current)
+        match = re.search(re.escape(identity_fp), current)
+        #match = re.search(re.escape(identity_file), current)
         if match:
             subprocess.check_call(
                 ['ssh-add', '-d', identity_file], stderr=DEVNULL)
@@ -364,9 +366,11 @@ def ssh_agent_remove_bless(identity_file):
 
 def ssh_agent_add_bless(identity_file):
     DEVNULL = open(os.devnull, 'w')
+    identity_fp = subprocess.check_output(['ssh-keygen','-lf',identity_file]).decode('UTF-8') #Get SHA256 fingerprint of the identity file
     subprocess.check_call(['ssh-add', identity_file], stderr=DEVNULL)
     current = subprocess.check_output(['ssh-add', '-l']).decode('UTF-8')
-    if not re.search(re.escape(identity_file), current):
+    #if not re.search(re.escape(identity_file), current):
+    if not re.search(re.escape(identity_fp), current):
         logging.debug("Could not add '{}' to ssh-agent".format(identity_file))
         sys.stderr.write(
             "Couldn't add identity to ssh-agent")
