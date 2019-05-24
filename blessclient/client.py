@@ -367,7 +367,10 @@ def ssh_agent_remove_bless(identity_file):
 def ssh_agent_add_bless(identity_file):
     DEVNULL = open(os.devnull, 'w')
     identity_fp = subprocess.check_output(['ssh-keygen','-lf',identity_file]).decode('UTF-8') #Get SHA256 fingerprint of the identity file
-    subprocess.check_call(['ssh-add', identity_file], stderr=DEVNULL)
+    try:
+      subprocess.check_call(['ssh-add', identity_file], stderr=DEVNULL)
+    except Exception:
+        logging.debug("Private Key has password")
     current = subprocess.check_output(['ssh-add', '-l']).decode('UTF-8')
     #if not re.search(re.escape(identity_file), current):
     if not re.search(re.escape(identity_fp), current):
