@@ -1,4 +1,7 @@
-# Blessclient
+# Blessclient -- DEPRECATED
+
+**NOTE**: We have deprecated python-blessclient and it is no longer actively maintained. A recommended alternative is [blessclient in Go](https://github.com/chanzuckerberg/blessclient).
+
 A client for interacting with [BLESS](https://github.com/lyft/bless) services from users' laptops. Blessclient optimizes to ensure that users can always use ssh as they normally would with a fixed key, with minimal delay.
 
 [Netflix's BLESS](https://github.com/netflix/bless) was designed to issue short-lived certificates to users after they logged into a bastion service, that would be used to authenticate the user to other hosts within the cluster. Lyft wanted to use ephemeral ssh certificates for our users too, but wanted to issue these certificates directly to users' laptops, instead of on the bastion. We were able to accomplish this by making a few modifications to Netflix's BLESS and deploying this project, blessclient, to our users' laptops. Doing this allowed Lyft to improve security by extending the existing multi-factor authentication (MFA) setup that we had with AWS to SSH, as well as simplifying our provisioning and deprovisioning process.
