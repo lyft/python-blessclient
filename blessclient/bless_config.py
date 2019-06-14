@@ -42,7 +42,7 @@ class BlessConfig(object):
                 'user_session_length': int(config.get('CLIENT', 'user_session_length')),
                 'usebless_role_session_length': int(config.get('CLIENT', 'usebless_role_session_length')),
                 'update_sshagent': config.getboolean('CLIENT', 'update_sshagent'),
-                'enc_assume_role': config.get('CLIENT', 'mfa_assume_role')
+                'enc_assume_role': config.get('CLIENT', 'enc_assume_role')
             },
             'BLESS_CONFIG': {
                 'ca_backend': config.get('MAIN', 'ca_backend'),
