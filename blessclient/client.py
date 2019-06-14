@@ -735,8 +735,15 @@ def bless(region, nocache, showgui, hostname, bless_config):
 
         if creds:
             save_cached_creds(creds, bless_config)
+
+        enc_creds = aws.sts_client().assume_role(
+            RoleArn=bless_config.get_client_config()['enc_assume_role'],
+            RoleSessionName='enc_assume'
+        )['Credentials']
+        
         kmsauth_token = get_kmsauth_token(
-            creds,
+            #creds,
+            enc_creds,
             kmsauth_config,
             username,
             cache=bless_cache
