@@ -161,7 +161,7 @@ def get_blessrole_credentials(iam_client, creds, blessconfig, bless_cache):
     role_creds = mfa_sts_client.assume_role(
         RoleArn=role_arn,
         RoleSessionName='mfaassume',
-        DurationSeconds=blessconfig.get_client_config()['usebless_role_session_length'],
+        DurationSeconds=blessconfig.get_client_config()['usebless_role_session_length']
     )['Credentials']
 
     logging.debug("Role Credentials: {}".format(role_creds))
@@ -729,28 +729,25 @@ def bless(region, nocache, showgui, hostname, bless_config):
                 SerialNumber=mfa_arn,
                 TokenCode=mfa_pin
             )['Credentials']
+
         except (ClientError, ParamValidationError):
+            print(ClientError.response)
             sys.stderr.write("Incorrect MFA, no certificate issued\n")
             sys.exit(1)
 
         if creds:
             save_cached_creds(creds, bless_config)
 
-        enc_creds = aws.sts_client().assume_role(
-            RoleArn=bless_config.get_client_config()['enc_assume_role'],
-            RoleSessionName='enc_assume'
-        )['Credentials']
-        
+        role_creds = get_blessrole_credentials(
+            aws.iam_client(), creds, bless_config, bless_cache)
+
         kmsauth_token = get_kmsauth_token(
-            #creds,
-            enc_creds,
+            role_creds,
             kmsauth_config,
             username,
             cache=bless_cache
         )
         logging.debug("Got kmsauth token: {}".format(kmsauth_token))
-        role_creds = get_blessrole_credentials(
-            aws.iam_client(), creds, bless_config, bless_cache)
 
     bless_lambda = BlessLambda(bless_lambda_config, role_creds, kmsauth_token, region)
 
