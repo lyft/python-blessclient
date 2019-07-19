@@ -731,7 +731,6 @@ def bless(region, nocache, showgui, hostname, bless_config):
             )['Credentials']
 
         except (ClientError, ParamValidationError):
-            print(ClientError.response)
             sys.stderr.write("Incorrect MFA, no certificate issued\n")
             sys.exit(1)
 
