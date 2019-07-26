@@ -41,7 +41,7 @@ class BlessConfig(object):
                 'update_script': config.get('CLIENT', 'update_script'),
                 'user_session_length': int(config.get('CLIENT', 'user_session_length')),
                 'usebless_role_session_length': int(config.get('CLIENT', 'usebless_role_session_length')),
-                'update_sshagent': config.getboolean('CLIENT', 'update_sshagent'),
+                'update_sshagent': config.getboolean('CLIENT', 'update_sshagent')
             },
             'BLESS_CONFIG': {
                 'ca_backend': config.get('MAIN', 'ca_backend'),
