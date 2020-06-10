@@ -352,11 +352,8 @@ def save_cached_creds(token_data, bless_config):
 def ssh_agent_remove_bless(identity_file):
     DEVNULL = open(os.devnull, 'w')
     try:
-        current = subprocess.check_output(['ssh-add', '-l']).decode('UTF-8')
-        match = re.search(re.escape(identity_file), current)
-        if match:
-            subprocess.check_call(
-                ['ssh-add', '-d', identity_file], stderr=DEVNULL)
+        subprocess.check_call(
+            ['ssh-add', '-d', identity_file], stderr=DEVNULL)
     except subprocess.CalledProcessError:
         logging.debug(
             "Non-zero exit from ssh-add, are there no identities in the current agent?")
@@ -364,9 +361,9 @@ def ssh_agent_remove_bless(identity_file):
 
 def ssh_agent_add_bless(identity_file):
     DEVNULL = open(os.devnull, 'w')
-    subprocess.check_call(['ssh-add', identity_file], stderr=DEVNULL)
-    current = subprocess.check_output(['ssh-add', '-l']).decode('UTF-8')
-    if not re.search(re.escape(identity_file), current):
+    try:
+        subprocess.check_call(['ssh-add', identity_file], stderr=DEVNULL)
+    except:
         logging.debug("Could not add '{}' to ssh-agent".format(identity_file))
         sys.stderr.write(
             "Couldn't add identity to ssh-agent")
